@@ -1,0 +1,8 @@
+{
+  "name": "Aura Tasks",
+  "description": "The ultimate intelligent task manager with natural language processing, smart actions, and a minimalist design.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}

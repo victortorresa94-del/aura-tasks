@@ -1,0 +1,249 @@
+import React, { useState } from 'react';
+import { X, User, Mail, Image as ImageIcon, Check, Save, Flag, Plus, Trash2, GripVertical } from 'lucide-react';
+import { User as UserType, TaskStatus } from '../types';
+
+interface SettingsModalProps {
+  user: UserType;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdateUser: (user: UserType) => void;
+  statuses?: TaskStatus[];
+  setStatuses?: React.Dispatch<React.SetStateAction<TaskStatus[]>>;
+}
+
+const COLORS = [
+  'bg-gray-400', 'bg-red-500', 'bg-orange-500', 'bg-amber-400', 
+  'bg-green-500', 'bg-emerald-400', 'bg-teal-500', 'bg-cyan-500', 
+  'bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-pink-500'
+];
+
+const SettingsModal: React.FC<SettingsModalProps> = ({ user, isOpen, onClose, onUpdateUser, statuses, setStatuses }) => {
+  const [activeTab, setActiveTab] = useState<'profile' | 'statuses'>('profile');
+  const [formData, setFormData] = useState<UserType>(user);
+  const [avatarType, setAvatarType] = useState<'emoji' | 'url'>((user.avatar.startsWith('http') || user.avatar.includes('/')) ? 'url' : 'emoji');
+  
+  // Status editing state
+  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
+  const [tempStatusName, setTempStatusName] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSave = () => {
+    onUpdateUser(formData);
+    onClose();
+  };
+
+  const handleAddStatus = () => {
+    if (!setStatuses || !statuses) return;
+    const newStatus: TaskStatus = {
+      id: Date.now().toString(),
+      name: 'Nuevo Estado',
+      color: 'bg-gray-400',
+      isCompleted: false
+    };
+    setStatuses([...statuses, newStatus]);
+  };
+
+  const handleDeleteStatus = (id: string) => {
+    if (!setStatuses || !statuses) return;
+    if (statuses.length <= 1) return alert("Debes tener al menos un estado.");
+    if (confirm("¿Eliminar estado? Las tareas en este estado podrían quedar huérfanas.")) {
+      setStatuses(statuses.filter(s => s.id !== id));
+    }
+  };
+
+  const updateStatus = (id: string, updates: Partial<TaskStatus>) => {
+     if (!setStatuses || !statuses) return;
+     setStatuses(statuses.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fade-in-up">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header with Tabs */}
+        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">Configuración</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="flex bg-gray-200/50 p-1 rounded-xl">
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'profile' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Perfil
+            </button>
+            <button 
+              onClick={() => setActiveTab('statuses')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'statuses' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Estados de Tarea
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          
+          {activeTab === 'profile' && (
+            <div className="space-y-6">
+              {/* Avatar Section */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-4xl relative group">
+                  {avatarType === 'url' ? (
+                    <img src={formData.avatar} alt="Avatar" className="w-full h-full object-cover" onError={(e) => e.currentTarget.src = 'https://ui-avatars.com/api/?name=User'} />
+                  ) : (
+                    <span>{formData.avatar}</span>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setAvatarType('emoji')}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${avatarType === 'emoji' ? 'bg-white shadow text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Emoji
+                  </button>
+                  <button 
+                    onClick={() => setAvatarType('url')}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${avatarType === 'url' ? 'bg-white shadow text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Foto (URL)
+                  </button>
+                </div>
+
+                <div className="w-full">
+                  {avatarType === 'url' ? (
+                    <div className="relative">
+                      <ImageIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input 
+                        type="text" 
+                        value={formData.avatar}
+                        onChange={(e) => setFormData({...formData, avatar: e.target.value})}
+                        placeholder="https://ejemplo.com/foto.jpg"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex justify-center gap-2">
+                       {['👨‍💻', '👩‍💻', '🚀', '⚡', '🐱', '🐶', '🦄'].map(emoji => (
+                         <button 
+                           key={emoji}
+                           onClick={() => setFormData({...formData, avatar: emoji})}
+                           className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center hover:bg-gray-100 transition-colors ${formData.avatar === emoji ? 'bg-indigo-50 ring-2 ring-indigo-200' : ''}`}
+                         >
+                           {emoji}
+                         </button>
+                       ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase block mb-1.5">Nombre de Usuario</label>
+                  <div className="relative">
+                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="text" 
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase block mb-1.5">Correo Electrónico</label>
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="email" 
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'statuses' && statuses && (
+            <div className="space-y-4">
+               <div className="flex justify-between items-center">
+                  <p className="text-xs text-gray-500">Define el flujo de trabajo de tus tareas.</p>
+                  <button onClick={handleAddStatus} className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100 flex items-center gap-1">
+                     <Plus size={12}/> Nuevo
+                  </button>
+               </div>
+
+               <div className="space-y-2">
+                  {statuses.map((status, idx) => (
+                     <div key={status.id} className="flex items-center gap-2 p-2 border border-gray-100 rounded-xl hover:shadow-sm bg-white group">
+                        <GripVertical size={16} className="text-gray-300 cursor-grab" />
+                        
+                        {/* Color Picker Popover (Simplified) */}
+                        <div className="relative group/color">
+                           <div className={`w-6 h-6 rounded-full cursor-pointer ${status.color} border-2 border-white shadow-sm`}></div>
+                           <div className="absolute top-full left-0 mt-2 bg-white shadow-xl rounded-lg p-2 grid grid-cols-4 gap-1 w-32 z-50 hidden group-hover/color:grid border border-gray-100">
+                              {COLORS.map(c => (
+                                 <button key={c} onClick={() => updateStatus(status.id, { color: c })} className={`w-6 h-6 rounded-full ${c} hover:scale-110 transition-transform`}></button>
+                              ))}
+                           </div>
+                        </div>
+
+                        {/* Name Input */}
+                        <input 
+                           value={status.name}
+                           onChange={(e) => updateStatus(status.id, { name: e.target.value })}
+                           className="flex-1 text-sm font-medium border-none focus:ring-0 bg-transparent px-2"
+                        />
+
+                        {/* Complete Checkbox */}
+                        <label className="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase cursor-pointer hover:bg-gray-50 p-1 rounded">
+                           <input 
+                              type="checkbox" 
+                              checked={status.isCompleted || false} 
+                              onChange={(e) => updateStatus(status.id, { isCompleted: e.target.checked })}
+                              className="rounded border-gray-300 text-green-500 focus:ring-green-500" 
+                           />
+                           Fin
+                        </label>
+
+                        <button onClick={() => handleDeleteStatus(status.id)} className="text-gray-300 hover:text-red-500 p-1">
+                           <Trash2 size={16} />
+                        </button>
+                     </div>
+                  ))}
+               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-100 flex gap-3 justify-end bg-gray-50/30">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            onClick={handleSave}
+            className="px-6 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+          >
+            <Save size={16} />
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SettingsModal;
