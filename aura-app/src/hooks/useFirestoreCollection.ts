@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { BaseRepository } from '../firebase/repositories/base';
 
-export function useFirestoreCollection<T>(
+import { BaseEntity } from '../types';
+
+export function useFirestoreCollection<T extends BaseEntity>(
     repo: BaseRepository<T>,
     initialData: T[] = []
 ) {

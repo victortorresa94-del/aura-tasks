@@ -25,7 +25,7 @@ const RecurringView: React.FC<RecurringViewProps> = ({ tasks, onAddTask }) => {
 
   const handleAddPreset = () => {
     if (!selectedPreset) return;
-    
+
     // Calculate next date based on payment day
     const today = new Date();
     let nextDate = new Date(today.getFullYear(), today.getMonth(), paymentDay);
@@ -35,6 +35,9 @@ const RecurringView: React.FC<RecurringViewProps> = ({ tasks, onAddTask }) => {
 
     const newTask: Task = {
       id: Date.now().toString(),
+      ownerId: '', // Will be set by repo
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       title: `Pagar ${selectedPreset.name}`,
       priority: 'media',
       date: nextDate.toISOString().split('T')[0],
@@ -79,10 +82,10 @@ const RecurringView: React.FC<RecurringViewProps> = ({ tasks, onAddTask }) => {
             </button>
           ))}
           <button className="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center gap-3 text-gray-400 hover:text-indigo-600">
-             <div className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-current">
-                <Plus size={24} />
-             </div>
-             <span className="text-sm font-medium">Personalizado</span>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-current">
+              <Plus size={24} />
+            </div>
+            <span className="text-sm font-medium">Personalizado</span>
           </button>
         </div>
       </div>
@@ -106,8 +109,8 @@ const RecurringView: React.FC<RecurringViewProps> = ({ tasks, onAddTask }) => {
                 <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Importe Mensual (€)</label>
                 <div className="relative">
                   <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     value={customPrice}
                     onChange={(e) => setCustomPrice(parseFloat(e.target.value))}
                     className="w-full pl-9 border border-gray-200 rounded-lg py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -119,26 +122,26 @@ const RecurringView: React.FC<RecurringViewProps> = ({ tasks, onAddTask }) => {
                 <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Día de pago</label>
                 <div className="relative">
                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <select 
+                  <select
                     value={paymentDay}
                     onChange={(e) => setPaymentDay(parseInt(e.target.value))}
                     className="w-full pl-9 border border-gray-200 rounded-lg py-2 focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                   >
                     {[...Array(31)].map((_, i) => (
-                      <option key={i+1} value={i+1}>Día {i+1} de cada mes</option>
+                      <option key={i + 1} value={i + 1}>Día {i + 1} de cada mes</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               <div className="flex gap-2 mt-6">
-                <button 
+                <button
                   onClick={() => setSelectedPreset(null)}
                   className="flex-1 py-2 text-gray-500 hover:bg-gray-100 rounded-lg"
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={handleAddPreset}
                   className="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
                 >
@@ -156,13 +159,13 @@ const RecurringView: React.FC<RecurringViewProps> = ({ tasks, onAddTask }) => {
         {recurringTasks.map(task => (
           <div key={task.id} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-4">
-               <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                 <Calendar size={20} />
-               </div>
-               <div>
-                 <h4 className="font-bold text-gray-900">{task.title}</h4>
-                 <p className="text-xs text-gray-500">Próximo: {task.date} • {task.amount}€</p>
-               </div>
+              <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <Calendar size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900">{task.title}</h4>
+                <p className="text-xs text-gray-500">Próximo: {task.date} • {task.amount}€</p>
+              </div>
             </div>
             <div className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
               {task.frequency}

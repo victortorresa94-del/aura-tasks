@@ -64,7 +64,7 @@ export class BaseRepository<T extends BaseEntity> {
     /**
      * Real-time subscription to the collection
      */
-    subscribe(uid: string, callback: (items: T[]) => void): () => void {
+    subscribe(uid: string, callback: (items: T[]) => void, onError?: (error: Error) => void): () => void {
         const q = query(this.getCollectionRef(uid), where("deletedAt", "==", null));
 
         return onSnapshot(q, (snapshot) => {
@@ -73,6 +73,9 @@ export class BaseRepository<T extends BaseEntity> {
                 items.push(doc.data() as T);
             });
             callback(items);
+        }, (error) => {
+            console.error(`Firestore subscription error for ${this.collectionName}:`, error);
+            if (onError) onError(error);
         });
     }
 

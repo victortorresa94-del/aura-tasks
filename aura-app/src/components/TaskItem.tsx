@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Check, Phone, MapPin, Music, DollarSign, Calendar,
-  Play, Navigation, CalendarDays
+  Play, Navigation, CalendarDays, ListTodo, ChevronDown
 } from 'lucide-react';
 import { Task, Project, TaskStatus } from '../types';
 
@@ -11,11 +11,13 @@ interface TaskItemProps {
   statuses?: TaskStatus[]; // New Prop
   onToggle: (id: string) => void;
   onClick: (task: Task) => void;
+  onUpdateTask?: (task: Task) => void;
   density?: 'compact' | 'comfortable';
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, list, statuses, onToggle, onClick, density = 'comfortable' }) => {
+const TaskItem: React.FC<TaskItemProps> = ({ task, list, statuses, onToggle, onClick, onUpdateTask, density = 'comfortable' }) => {
   const isCompact = density === 'compact';
+  const [showSubtasks, setShowSubtasks] = React.useState(false);
 
   // Resolve Status
   const statusObj = statuses?.find(s => s.id === task.status);
@@ -42,6 +44,16 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, list, statuses, onToggle, onC
     }
   };
 
+  const activeSubtasks = task.subtasks?.length || 0;
+  const completedSubtasks = task.subtasks?.filter(s => s.isCompleted).length || 0;
+
+  const toggleSubtask = (e: React.MouseEvent, subId: string) => {
+    e.stopPropagation();
+    if (!onUpdateTask || !task.subtasks) return;
+    const newSubtasks = task.subtasks.map(s => s.id === subId ? { ...s, isCompleted: !s.isCompleted } : s);
+    onUpdateTask({ ...task, subtasks: newSubtasks });
+  };
+
   // Special rendering for Events
   if (task.type === 'event') {
     return (
@@ -65,109 +77,147 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, list, statuses, onToggle, onC
   }
 
   return (
-    <div
-      onClick={() => onClick(task)}
-      className={`
-        group relative flex items-start gap-3 bg-aura-gray/20 rounded-xl border border-white/5 
-        shadow-sm hover:bg-aura-gray/40 hover:border-white/10 transition-all cursor-pointer select-none active:scale-[0.99]
-        ${isCompleted ? 'opacity-50' : ''}
-        ${isCompact ? 'p-3 items-center' : 'p-4'}
-      `}
-    >
-      {/* Checkbox / Status Indicator */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
+
+    <div className="flex flex-col gap-1">
+      <div
+        onClick={() => onClick(task)}
         className={`
-          flex-shrink-0 rounded-full border-2 flex items-center justify-center transition-colors
-          ${isCompact ? 'w-5 h-5' : 'w-5 h-5 mt-1'}
-          ${isCompleted
-            ? 'bg-aura-accent border-aura-accent text-aura-black'
-            : `border-gray-500 hover:border-aura-accent`}
-        `}
+        group relative flex items-center gap-3 py-2 px-3
+        bg-aura-gray/20 rounded-xl border border-white/5 
+        hover:bg-aura-gray/40 hover:border-white/10 transition-all cursor-pointer select-none
+        ${isCompleted ? 'opacity-60' : ''}
+      `}
       >
-        {isCompleted && <Check size={12} strokeWidth={3} />}
-      </button>
+        {/* DRAG HANDLE (Visible on Hover in Desktop) */}
+        <div className="hidden md:flex opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 p-1 flex-shrink-0">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex gap-0.5"><div className="w-0.5 h-0.5 bg-current rounded-full" /><div className="w-0.5 h-0.5 bg-current rounded-full" /></div>
+            <div className="flex gap-0.5"><div className="w-0.5 h-0.5 bg-current rounded-full" /><div className="w-0.5 h-0.5 bg-current rounded-full" /></div>
+            <div className="flex gap-0.5"><div className="w-0.5 h-0.5 bg-current rounded-full" /><div className="w-0.5 h-0.5 bg-current rounded-full" /></div>
+          </div>
+        </div>
 
-      <div className="flex-1 min-w-0">
-        {/* Top Row: Title & Actions */}
-        <div className="flex items-center justify-between">
-          <h3 className={`font-medium text-aura-white truncate pr-2 ${isCompleted ? 'line-through text-gray-500' : ''} ${isCompact ? 'text-sm' : ''}`}>
+        {/* CHECKBOX */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
+          className={`
+          flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+          ${isCompleted
+              ? 'bg-aura-accent border-aura-accent text-aura-black'
+              : `border-gray-500 hover:border-aura-accent hover:bg-white/5`}
+        `}
+        >
+          {isCompleted && <Check size={10} strokeWidth={4} />}
+        </button>
+
+        {/* TITLE & TAGS */}
+        <div className="flex-1 min-w-0 flex items-center gap-3 mr-4">
+          <span className={`text-sm text-gray-200 font-medium truncate ${isCompleted ? 'line-through text-gray-500' : ''}`}>
             {task.title}
-          </h3>
+          </span>
 
-          {/* Action Button: Visible on Mobile, Hover on Desktop */}
-          {task.type !== 'normal' && !isCompact && (
+          {/* Subtasks Indicator (Small) */}
+          {activeSubtasks > 0 && (
             <button
-              onClick={handleAction}
-              className="ml-2 p-1.5 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 hover:text-aura-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100"
+              onClick={(e) => { e.stopPropagation(); setShowSubtasks(!showSubtasks); }}
+              className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-aura-white bg-white/5 px-1.5 py-0.5 rounded transition-colors"
+              title={`${completedSubtasks}/${activeSubtasks} Subtareas`}
             >
-              {task.type === 'call' && <Phone size={16} />}
-              {task.type === 'shopping' && <MapPin size={16} />}
-              {task.type === 'music' && <Play size={16} />}
-              {task.type === 'payment' && <DollarSign size={16} />}
+              <ListTodo size={10} />
+              <span>{completedSubtasks}/{activeSubtasks}</span>
             </button>
           )}
-        </div>
 
-        {/* Bottom Row: Metadata (Hidden in Compact if no critical info) */}
-        <div className={`flex flex-wrap items-center gap-2 ${isCompact ? 'mt-1' : 'mt-1.5'}`}>
-          {!isCompact && list && (
-            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-white/5 text-gray-400 border border-white/5">
-              <span className={list.color}>{list.icon}</span> {list.name}
+          {/* List Tag (if present) */}
+          {list && (
+            <span className="hidden sm:flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded text-gray-500 bg-white/5 border border-white/5">
+              <span className={`w-1.5 h-1.5 rounded-full ${list.color.replace('text-', 'bg-').replace('border-', '')}`} />
+              <span className="uppercase tracking-wider">{list.name}</span>
             </span>
           )}
+        </div>
 
-          {/* Status Badge */}
-          {!isCompact && statusObj && !isCompleted && (
-            <span className={`flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded text-white transform scale-90 origin-left`}
-              style={{ backgroundColor: statusObj.color.startsWith('bg-') ? undefined : statusObj.color }} // Handle if color is hex or class
+        {/* COLUMNS (Desktop) */}
+        <div className="hidden md:flex items-center gap-6 text-xs text-gray-400 flex-shrink-0">
+
+          {/* DATE */}
+          <div className="w-24 flex justify-end">
+            {task.date ? (
+              <span className={`hover:text-aura-white transition-colors cursor-pointer ${task.date < new Date().toISOString().split('T')[0] ? 'text-red-400' : ''}`}>
+                {new Date(task.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
+              </span>
+            ) : (
+              <span className="opacity-0 group-hover:opacity-30 hover:!opacity-100 cursor-pointer transition-opacity text-[10px] uppercase font-bold text-gray-500">Fecha</span>
+            )}
+          </div>
+
+          {/* PRIORITY */}
+          <div className="w-20 flex justify-center">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!onUpdateTask) return;
+                const nextP = task.priority === 'baja' ? 'media' : task.priority === 'media' ? 'alta' : 'baja';
+                onUpdateTask({ ...task, priority: nextP });
+              }}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 transition-colors uppercase text-[10px] font-bold tracking-wider
+                   ${task.priority === 'alta' ? 'text-red-400' : task.priority === 'media' ? 'text-amber-400' : 'text-emerald-400'}
+                `}
             >
-              <span className={`w-1.5 h-1.5 rounded-full bg-white`}></span>
-              {statusObj.name}
-            </span>
-          )}
-
-          {/* Priority (Dot in compact, Label in comfortable) */}
-          {isCompact ? (
-            <div className={`w-2 h-2 rounded-full ${task.priority === 'alta' ? 'bg-red-500' : task.priority === 'media' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-          ) : (
-            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${task.priority === 'alta' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                task.priority === 'media' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                  'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${task.priority === 'alta' ? 'bg-red-500' : task.priority === 'media' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
               {task.priority}
-            </span>
-          )}
+            </button>
+          </div>
 
-          {/* Date */}
-          {task.date && !isCompact && (
-            <span className="flex items-center gap-1 text-xs text-gray-500">
-              <Calendar size={12} />
-              {new Date(task.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
-            </span>
-          )}
-
-          {/* Event Badge (Always shown if present) */}
-          {task.eventDate && (
-            <span className={`flex items-center gap-1 font-bold text-purple-400 bg-purple-500/10 rounded border border-purple-500/20 ${isCompact ? 'text-[9px] px-1.5' : 'text-[10px] px-2 py-0.5'}`}>
-              <CalendarDays size={isCompact ? 10 : 12} />
-              {isCompact ? 'Evento' : `Evento: ${new Date(task.eventDate).toLocaleDateString('es-ES', { weekday: 'short' })}`}
-            </span>
-          )}
+          {/* STATUS */}
+          <div className="w-28 flex justify-end">
+            {statuses && statusObj ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!onUpdateTask) return;
+                  const currentIndex = statuses.findIndex(s => s.id === task.status);
+                  const nextIndex = (currentIndex + 1) % statuses.length;
+                  onUpdateTask({ ...task, status: statuses[nextIndex].id });
+                }}
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors uppercase text-[10px] font-bold text-white max-w-full"
+                style={{ backgroundColor: statusObj.color.startsWith('bg-') ? undefined : `${statusObj.color}20`, color: statusObj.color.startsWith('bg-') ? undefined : statusObj.color }}
+              >
+                <div className={`w-1.5 h-1.5 rounded-sm ${statusObj.color.startsWith('bg-') ? statusObj.color : ''}`} style={{ backgroundColor: statusObj.color.startsWith('bg-') ? undefined : statusObj.color }} />
+                <span className="truncate">{statusObj.name}</span>
+              </button>
+            ) : (
+              <div className="w-2 h-2 rounded-full bg-gray-600" />
+            )}
+          </div>
         </div>
 
-        {/* Context Preview (Only Comfortable) */}
-        {!isCompact && task.type === 'call' && task.contactName && (
-          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-            <Phone size={12} className="text-gray-500" /> Llamar a <span className="text-gray-300">{task.contactName}</span>
-          </p>
+        {/* MOBILE METADATA (Compact only logic) */}
+        {!isCompact && (
+          <div className="md:hidden flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${task.priority === 'alta' ? 'bg-red-500' : task.priority === 'media' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+            {task.date && <span className="text-[10px] text-gray-500">{new Date(task.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</span>}
+          </div>
         )}
-        {!isCompact && task.type === 'shopping' && task.locationName && (
-          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-            <MapPin size={12} className="text-gray-500" /> Ir a <span className="text-gray-300">{task.locationName}</span>
-          </p>
-        )}
+
       </div>
+
+      {/* SUBTASKS LIST */}
+      {showSubtasks && task.subtasks && (
+        <div className="ml-10 md:ml-12 border-l border-white/10 pl-2 space-y-0.5 mb-2 animate-fade-in-up">
+          {task.subtasks.map(sub => (
+            <div key={sub.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded transition-colors group/sub">
+              <button
+                onClick={(e) => toggleSubtask(e, sub.id)}
+                className={`flex-shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${sub.isCompleted ? 'bg-aura-accent border-aura-accent text-aura-black' : 'border-gray-600 hover:border-gray-400'}`}
+              >
+                {sub.isCompleted && <Check size={8} strokeWidth={3} />}
+              </button>
+              <span className={`text-xs ${sub.isCompleted ? 'line-through text-gray-600' : 'text-gray-400'} flex-1`}>{sub.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

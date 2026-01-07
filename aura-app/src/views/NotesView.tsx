@@ -263,10 +263,10 @@ const Editor: React.FC<{
     updateNote({ ...note, blocks: newBlocks });
   };
 
-  const addBlock = (afterId: string, type: BlockType = 'text') => {
+  const addBlock = (afterId: string, type: BlockType = 'text', content: string = '') => {
     const idx = note.blocks.findIndex(b => b.id === afterId);
     const newId = Date.now().toString();
-    const newBlock: NoteBlock = { id: newId, type, content: '' };
+    const newBlock: NoteBlock = { id: newId, type, content };
     const newBlocks = [...note.blocks];
     newBlocks.splice(idx + 1, 0, newBlock);
     updateNote({ ...note, blocks: newBlocks });
@@ -386,10 +386,7 @@ const Editor: React.FC<{
             <div className="space-y-1 min-h-[200px]" onClick={() => {
               // Focus last block if clicking empty space
               if (note.blocks.length > 0) {
-                // This is a bit hacky to implement simply without refs to all blocks, 
-                // but allows clicking below content to type
                 const lastId = note.blocks[note.blocks.length - 1].id;
-                // In a real app we'd use refs. Here we rely on the specific hint area below.
               }
             }}>
               {note.blocks.map((block, i) => (
@@ -397,7 +394,7 @@ const Editor: React.FC<{
                   key={block.id}
                   block={block}
                   onUpdate={(updates) => updateBlock(block.id, updates)}
-                  onEnter={() => addBlock(block.id)}
+                  onEnter={(type, content) => addBlock(block.id, type, content)}
                   onDelete={() => removeBlock(block.id)}
                   isFirst={i === 0}
                   isFocused={focusedBlockId === block.id}
@@ -444,7 +441,7 @@ const Editor: React.FC<{
 const Block: React.FC<{
   block: NoteBlock;
   onUpdate: (u: Partial<NoteBlock>) => void;
-  onEnter: () => void;
+  onEnter: (type?: BlockType, content?: string) => void;
   onDelete: () => void;
   isFirst: boolean;
   isFocused: boolean;
@@ -452,6 +449,7 @@ const Block: React.FC<{
 }> = ({ block, onUpdate, onEnter, onDelete, isFirst, isFocused, onFocus }) => {
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     if (isFocused && inputRef.current) {
@@ -461,6 +459,19 @@ const Block: React.FC<{
 
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const val = e.currentTarget.value;
+
+    // Direct Markdown shortcuts (Notion-like)
+    if (block.type === 'text') {
+      if (val === '/h1 ' || val === '# ') { onUpdate({ type: 'h1', content: '' }); setShowSlashMenu(false); return; }
+      if (val === '/h2 ' || val === '## ') { onUpdate({ type: 'h2', content: '' }); setShowSlashMenu(false); return; }
+      if (val === '/h3 ' || val === '### ') { onUpdate({ type: 'h3', content: '' }); setShowSlashMenu(false); return; }
+      if (val === '/todo ' || val === '[] ' || val === '-[] ') { onUpdate({ type: 'checkbox', content: '' }); setShowSlashMenu(false); return; }
+      if (val === '/toggle ' || val === '> ') { onUpdate({ type: 'toggle', content: '' }); setShowSlashMenu(false); return; }
+      if (val === '/quote ' || val === '" ') { onUpdate({ type: 'quote', content: '' }); setShowSlashMenu(false); return; }
+      if (val === '/callout ') { onUpdate({ type: 'callout', content: '' }); setShowSlashMenu(false); return; }
+      if (val === '/img ') { onUpdate({ type: 'image', content: '' }); setShowSlashMenu(false); return; }
+    }
+
     if (val.endsWith('/') && !showSlashMenu) setShowSlashMenu(true);
     if (showSlashMenu && !val.includes('/')) setShowSlashMenu(false);
     onUpdate({ content: val });
@@ -479,16 +490,46 @@ const Block: React.FC<{
     if (e.key === 'Escape' && showSlashMenu) setShowSlashMenu(false);
   };
 
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const result = ev.target?.result as string;
+          if (result) {
+            // If block is empty text/image, replace it. Otherwise insert after.
+            if ((block.type === 'text' && !block.content.trim()) || (block.type === 'image' && !block.content)) {
+              onUpdate({ type: 'image', content: result });
+            } else {
+              onEnter('image', result);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
   const selectType = (type: BlockType) => {
     onUpdate({ type, content: block.content.replace('/', '') });
     setShowSlashMenu(false);
     inputRef.current?.focus();
   };
 
-  const commonClasses = "w-full bg-transparent border-none p-0 focus:ring-0 text-aura-white resize-none overflow-hidden placeholder:text-gray-600";
+  const commonClasses = "w-full bg-transparent border-none p-0 focus:ring-0 text-aura-white resize-none overflow-hidden placeholder:text-gray-600 outline-none shadow-none";
 
   return (
-    <div className="group relative pl-6 md:pl-0" onClick={onFocus}>
+    <div
+      className={`group relative pl-6 md:pl-0 transition-all rounded-lg ${isDragOver ? 'bg-aura-accent/10 ring-2 ring-aura-accent/30 p-2' : ''}`}
+      onClick={onFocus}
+      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={handleDrop}
+    >
       {/* Visual Controls (Hover - Desktop) */}
       <div className="absolute left-[-2rem] top-1.5 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 hidden md:flex">
         <button className="text-gray-500 hover:text-aura-white cursor-grab p-1 hover:bg-white/5 rounded" title="Arrastrar (Próximamente)"><GripVertical size={14} /></button>
@@ -535,16 +576,57 @@ const Block: React.FC<{
       )}
 
       {block.type === 'image' && (
-        <div className="my-2">
+        <div className="my-2 select-none">
           {block.content ? (
-            <div className="relative group/img rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
-              <img src={block.content} className="w-full max-h-[500px] object-contain" />
-              <button onClick={() => onUpdate({ content: '' })} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded text-red-500 opacity-0 group-hover/img:opacity-100 transition-opacity"><Trash2 size={16} /></button>
+            <div className="relative group/img rounded-xl overflow-hidden bg-black/20 border border-white/10 shadow-sm max-w-full">
+              <img src={block.content} className="w-full max-h-[500px] object-contain bg-black/50" alt="Contenido de bloque" />
+              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover/img:opacity-100 transition-all">
+                <button
+                  onClick={() => onUpdate({ content: '' })}
+                  className="bg-black/60 hover:bg-red-500/80 text-white p-1.5 rounded-lg backdrop-blur-sm transition-colors"
+                  title="Eliminar imagen"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200 border-dashed text-gray-400">
-              <ImageIcon size={18} />
-              <input ref={inputRef as any} autoFocus className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-gray-400" placeholder="Pega URL de imagen..." value={block.content} onChange={handleInput} onKeyDown={handleKeyDown} onFocus={onFocus} />
+            <div className="flex flex-col gap-2 p-6 bg-white/5 border border-white/10 rounded-xl border-dashed hover:border-aura-accent/50 hover:bg-white/10 transition-all group/upload text-center items-center justify-center">
+              <div className="p-3 bg-white/5 rounded-full mb-1 group-hover/upload:scale-110 transition-transform">
+                <ImageIcon size={24} className="text-gray-500 group-hover/upload:text-aura-accent transition-colors" />
+              </div>
+              <p className="text-sm text-gray-400 font-medium">Añadir imagen</p>
+              <div className="flex gap-2 mt-2">
+                <label className="cursor-pointer bg-aura-accent hover:bg-white text-aura-black px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-aura-accent/10 hover:shadow-aura-accent/20 active:scale-95 flex items-center gap-2">
+                  <FilePlus size={14} /> Subir archivo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        // TODO: In production, upload to Firebase Storage here and use URL
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) onUpdate({ content: ev.target.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+                <button
+                  onClick={() => {
+                    const url = prompt("Introduce la URL de la imagen:");
+                    if (url) onUpdate({ content: url });
+                  }}
+                  className="bg-transparent border border-white/10 hover:bg-white/5 text-gray-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                >
+                  Pegar Link
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-600 mt-2">Soporta JPG, PNG, WEBP</p>
             </div>
           )}
         </div>

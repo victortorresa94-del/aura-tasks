@@ -30,12 +30,14 @@ interface SidebarProps {
 
   // Task Views Sidebar
   setShowTaskViewsSidebar?: (value: boolean | ((prev: boolean) => boolean)) => void;
+  // Projects Sidebar
+  setShowProjectsSidebar?: (value: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
   user, currentView, setView, activeSection, setActiveSection,
   showMenu, setShowMenu, onOpenAura, onOpenSettings,
-  customViews, onCreateView, onDeleteView, projects, onAddTab, setShowTaskViewsSidebar
+  customViews, onCreateView, onDeleteView, projects, onAddTab, setShowTaskViewsSidebar, setShowProjectsSidebar
 }) => {
   const [isCreatingView, setIsCreatingView] = useState(false);
   const [newViewName, setNewViewName] = useState('');
@@ -67,13 +69,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     setActiveSection(sectionId);
     // Toggle task views sidebar when clicking Tasks
     if (sectionId === 'tasks') {
-      setShowTaskViewsSidebar(prev => !prev);
+      setShowTaskViewsSidebar?.(prev => !prev);
+      setShowProjectsSidebar?.(false);
+    } else if (sectionId === 'projects') {
+      setShowProjectsSidebar?.(prev => !prev);
+      setShowTaskViewsSidebar?.(false);
+      setView('proyectos');
     } else {
-      setShowTaskViewsSidebar(false);
-    }
-    // If switching to Projects, might want to default to 'all_projects' or list
-    if (sectionId === 'projects') {
-      setView('proyectos'); // Special view ID for project list
+      setShowTaskViewsSidebar?.(false);
+      setShowProjectsSidebar?.(false);
     }
     if (window.innerWidth < 1024) setShowMenu(false);
   };
@@ -102,6 +106,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const newView: CustomView = {
       id: Date.now().toString(),
+      ownerId: user.id,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       name: newViewName,
       icon: '⚡',
       layout: 'list',

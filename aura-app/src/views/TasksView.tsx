@@ -20,10 +20,11 @@ interface TasksViewProps {
    userName: string;
    onSelectTask: (task: Task) => void;
    onOpenSummary: () => void;
+   onUpdateTask?: (task: Task) => void;
 }
 
 const TasksView: React.FC<TasksViewProps> = ({
-   tasks, setTasks, projects, statuses, currentView, customViewData, onUpdateView, userName, onSelectTask, onOpenSummary
+   tasks, setTasks, projects, statuses, currentView, customViewData, onUpdateView, userName, onSelectTask, onOpenSummary, onUpdateTask
 }) => {
    const [search, setSearch] = useState('');
    // Drag and Drop State
@@ -247,139 +248,131 @@ const TasksView: React.FC<TasksViewProps> = ({
       const priorityFilters = effectiveFilters.priority || [];
       const projectFilters = effectiveFilters.projectIds || [];
 
+      // Helper to check if any filter is active
+      const hasActiveFilters = statusFilters.length > 0 || priorityFilters.length > 0 || projectFilters.length > 0;
+
       return (
-         <div className="relative z-30 flex flex-col xl:flex-row xl:items-center gap-4 mb-6 bg-aura-black p-3 rounded-xl border border-white/5 shadow-sm animate-fade-in-up">
-            {/* Layout Switcher */}
-            <div className="flex bg-aura-gray/50 rounded-lg p-1 shrink-0 border border-white/5">
+         <div className="relative z-30 flex flex-col xl:flex-row xl:items-center gap-4 mb-6 bg-aura-black p-2 rounded-2xl border border-white/5 shadow-sm animate-fade-in-up">
+            {/* 1. Layout Switcher (Left) */}
+            <div className="flex bg-aura-gray/50 rounded-xl p-1 shrink-0 border border-white/5">
                {[
-                  { id: 'list', icon: <List size={16} />, label: 'Lista' },
-                  { id: 'compact', icon: <AlignJustify size={16} />, label: 'Compacta' },
-                  { id: 'kanban', icon: <KanbanIcon size={16} />, label: 'Tablero' },
-                  { id: 'grid', icon: <LayoutGrid size={16} />, label: 'Cuadrícula' },
+                  { id: 'list', icon: <List size={18} />, label: 'Lista' },
+                  { id: 'compact', icon: <AlignJustify size={18} />, label: 'Compacta' },
+                  { id: 'kanban', icon: <KanbanIcon size={18} />, label: 'Tablero' },
+                  { id: 'grid', icon: <LayoutGrid size={18} />, label: 'Cuadrícula' },
                ].map((opt) => (
                   <button
                      key={opt.id}
                      onClick={() => handleUpdateConfig('layout', opt.id)}
-                     className={`p-2 rounded-md transition-all flex items-center gap-2 ${effectiveLayout === opt.id ? 'bg-aura-gray-light text-aura-white shadow-sm border border-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                     className={`p-2.5 rounded-lg transition-all flex items-center justify-center ${effectiveLayout === opt.id ? 'bg-aura-gray-light text-aura-white shadow-sm ring-1 ring-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
                      title={opt.label}
                   >
                      {opt.icon}
-                     <span className="text-xs font-medium hidden lg:inline">{opt.label}</span>
                   </button>
                ))}
             </div>
 
-            <div className="h-6 w-px bg-white/10 hidden xl:block"></div>
+            <div className="h-6 w-px bg-white/10 hidden xl:block mx-2"></div>
 
-            {/* ACTIONS: GROUP, SORT, FILTER */}
+            {/* 2. Actions (Group, Sort, Filter) - Icon Only */}
             <div className="flex flex-wrap items-center gap-2">
 
-               {/* 1. GROUP BY */}
+               {/* GROUP BY */}
                <div className="relative group shrink-0">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-aura-gray/30 border border-white/10 rounded-lg text-xs font-medium text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white transition-colors">
-                     <Layers size={14} className="text-gray-500" />
-                     <span className="hidden sm:inline">Agrupar:</span>
-                     <span className="text-aura-accent font-bold capitalize">{effectiveGroupBy === 'none' ? 'Nada' : effectiveGroupBy === 'project' ? 'Proyecto' : effectiveGroupBy === 'priority' ? 'Prioridad' : 'Estado'}</span>
-                     <ChevronDown size={12} className="text-gray-500" />
+                  <button className={`p-2.5 rounded-xl border border-white/10 transition-colors flex items-center gap-2 ${effectiveGroupBy !== 'none' ? 'bg-aura-accent/10 border-aura-accent/30 text-aura-accent' : 'bg-aura-gray/30 text-gray-400 hover:bg-aura-gray/50 hover:text-white'}`} title="Agrupar por">
+                     <Layers size={18} />
+                     {effectiveGroupBy !== 'none' && <span className="text-xs font-bold capitalize hidden sm:inline">{effectiveGroupBy === 'project' ? 'Proyecto' : effectiveGroupBy === 'priority' ? 'Prioridad' : 'Estado'}</span>}
                   </button>
-                  <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-1 w-32 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
+                  <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-40 z-50 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
+                     <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 mb-1">Agrupar por</div>
                      {['none', 'status', 'priority', 'project'].map(g => (
-                        <button key={g} onClick={() => handleUpdateConfig('groupBy', g)} className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 rounded text-gray-300 hover:text-aura-white capitalize">
-                           {g === 'none' ? 'Nada' : g === 'project' ? 'Proyecto' : g === 'priority' ? 'Prioridad' : 'Estado'}
+                        <button key={g} onClick={() => handleUpdateConfig('groupBy', g)} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveGroupBy === g ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-gray-300'}`}>
+                           <span className="capitalize">{g === 'none' ? 'Sin agrupar' : g === 'project' ? 'Proyecto' : g === 'priority' ? 'Prioridad' : 'Estado'}</span>
+                           {effectiveGroupBy === g && <CheckCircle size={12} className="text-aura-accent" />}
                         </button>
                      ))}
                   </div>
                </div>
 
-               {/* 2. SORT BY */}
+               {/* SORT BY */}
                <div className="relative group shrink-0">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-aura-gray/30 border border-white/10 rounded-lg text-xs font-medium text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white transition-colors">
-                     <ArrowUpDown size={14} className="text-gray-500" />
-                     <span className="hidden sm:inline">Ordenar:</span>
-                     <span className="text-aura-accent font-bold capitalize">{effectiveSortBy === 'date' ? 'Fecha' : effectiveSortBy === 'title' ? 'Nombre' : 'Prioridad'}</span>
-                     <ChevronDown size={12} className="text-gray-500" />
+                  <button className={`p-2.5 rounded-xl border border-white/10 transition-colors flex items-center gap-2 ${effectiveSortBy !== 'date' ? 'bg-aura-accent/10 border-aura-accent/30 text-aura-accent' : 'bg-aura-gray/30 text-gray-400 hover:bg-aura-gray/50 hover:text-white'}`} title="Ordenar por">
+                     <ArrowUpDown size={18} />
+                     {effectiveSortBy !== 'date' && <span className="text-xs font-bold capitalize hidden sm:inline">{effectiveSortBy === 'title' ? 'Nombre' : 'Prioridad'}</span>}
                   </button>
-                  <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-1 w-32 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
+                  <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-40 z-50 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
+                     <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 mb-1">Ordenar por</div>
                      {[
                         { id: 'date', label: 'Fecha' },
                         { id: 'priority', label: 'Prioridad' },
                         { id: 'title', label: 'Nombre' }
                      ].map(s => (
-                        <button key={s.id} onClick={() => handleUpdateConfig('sortBy', s.id)} className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 rounded text-gray-300 hover:text-aura-white">
-                           {s.label}
+                        <button key={s.id} onClick={() => handleUpdateConfig('sortBy', s.id)} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveSortBy === s.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-gray-300'}`}>
+                           <span>{s.label}</span>
+                           {effectiveSortBy === s.id && <CheckCircle size={12} className="text-aura-accent" />}
                         </button>
                      ))}
                   </div>
                </div>
 
-               <div className="h-4 w-px bg-gray-200 mx-1"></div>
+               <div className="h-6 w-px bg-white/10 mx-1"></div>
 
-               {/* 3. FILTERS */}
-               <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase mr-1 hidden sm:inline"><Filter size={10} className="inline mr-1" />Filtros:</span>
+               {/* FILTERS ICON */}
+               <div className="relative group shrink-0">
+                  <button className={`p-2.5 rounded-xl border border-white/10 transition-colors flex items-center gap-2 ${hasActiveFilters ? 'bg-aura-accent text-aura-black ring-2 ring-aura-accent/20' : 'bg-aura-gray/30 text-gray-400 hover:bg-aura-gray/50 hover:text-white'}`} title="Filtros">
+                     <Filter size={18} />
+                     {hasActiveFilters && <span className="bg-black/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">{(statusFilters.length + priorityFilters.length + projectFilters.length)}</span>}
+                  </button>
 
-                  {/* Filter: Status */}
-                  <div className="relative group shrink-0">
-                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors ${statusFilters.length ? 'bg-aura-accent/10 border-aura-accent/20 text-aura-accent' : 'bg-aura-gray/30 border-white/10 text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white'}`}>
-                        Estados
-                        {statusFilters.length ? <span className="bg-aura-accent text-aura-black px-1 rounded-full text-[9px] font-bold">{statusFilters.length}</span> : null}
-                     </button>
-                     <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-2 w-40 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
-                        {(statuses || []).map(s => (
-                           <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded cursor-pointer text-gray-300">
-                              <input
-                                 type="checkbox"
-                                 checked={statusFilters.includes(s.id)}
-                                 onChange={() => toggleFilter('status', s.id)}
-                                 className="rounded border-gray-600 bg-aura-black/50 text-aura-accent focus:ring-aura-accent"
-                              />
-                              <div className={`w-2 h-2 rounded-full ${s.color}`}></div>
-                              <span className="text-xs truncate">{s.name}</span>
-                           </label>
-                        ))}
+                  {/* Mega Menu for Filters */}
+                  <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-4 w-64 z-50 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
+
+                     {/* Statuses */}
+                     <div className="mb-4">
+                        <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Estados</h5>
+                        <div className="space-y-1">
+                           {statuses.map(s => (
+                              <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded-lg cursor-pointer group/item">
+                                 <input type="checkbox" checked={statusFilters.includes(s.id)} onChange={() => toggleFilter('status', s.id)} className="rounded border-gray-600 bg-black/50 text-aura-accent sm:w-3 sm:h-3" />
+                                 <div className={`w-2 h-2 rounded-full ${s.color}`}></div>
+                                 <span className="text-xs text-gray-300 group-hover/item:text-white transition-colors">{s.name}</span>
+                              </label>
+                           ))}
+                        </div>
                      </div>
-                  </div>
 
-                  {/* Filter: Priority */}
-                  <div className="relative group shrink-0">
-                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors ${priorityFilters.length ? 'bg-aura-accent/10 border-aura-accent/20 text-aura-accent' : 'bg-aura-gray/30 border-white/10 text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white'}`}>
-                        Prioridad
-                        {priorityFilters.length ? <span className="bg-aura-accent text-aura-black px-1 rounded-full text-[9px] font-bold">{priorityFilters.length}</span> : null}
-                     </button>
-                     <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-2 w-40 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
-                        {['alta', 'media', 'baja'].map(p => (
-                           <label key={p} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded cursor-pointer text-gray-300">
-                              <input
-                                 type="checkbox"
-                                 checked={priorityFilters.includes(p as Priority)}
-                                 onChange={() => toggleFilter('priority', p)}
-                                 className="rounded border-gray-600 bg-aura-black/50 text-aura-accent focus:ring-aura-accent"
-                              />
-                              <span className="text-xs capitalize">{p}</span>
-                           </label>
-                        ))}
+                     {/* Priorities */}
+                     <div className="mb-4">
+                        <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Prioridad</h5>
+                        <div className="flex gap-1">
+                           {['baja', 'media', 'alta'].map(p => {
+                              const active = priorityFilters.includes(p as Priority);
+                              return (
+                                 <button
+                                    key={p}
+                                    onClick={() => toggleFilter('priority', p)}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${active ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+                                 >
+                                    {p}
+                                 </button>
+                              )
+                           })}
+                        </div>
                      </div>
-                  </div>
 
-                  {/* Filter: Projects */}
-                  <div className="relative group shrink-0">
-                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors ${projectFilters.length ? 'bg-aura-accent/10 border-aura-accent/20 text-aura-accent' : 'bg-aura-gray/30 border-white/10 text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white'}`}>
-                        Proyectos
-                        {projectFilters.length ? <span className="bg-aura-accent text-aura-black px-1 rounded-full text-[9px] font-bold">{projectFilters.length}</span> : null}
-                     </button>
-                     <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-2 w-48 z-20 hidden group-hover:block animate-fade-in-up max-h-48 overflow-y-auto custom-scrollbar backdrop-blur-xl">
-                        {(projects || []).map(p => (
-                           <label key={p.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded cursor-pointer text-gray-300">
-                              <input
-                                 type="checkbox"
-                                 checked={projectFilters.includes(p.id)}
-                                 onChange={() => toggleFilter('projectIds', p.id)}
-                                 className="rounded border-gray-600 bg-aura-black/50 text-aura-accent focus:ring-aura-accent"
-                              />
-                              <span className="text-xs truncate">{p.icon} {p.name}</span>
-                           </label>
-                        ))}
+                     {/* Projects (Limited View) */}
+                     <div>
+                        <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Proyectos</h5>
+                        <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                           {projects.map(p => (
+                              <label key={p.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded-lg cursor-pointer group/item">
+                                 <input type="checkbox" checked={projectFilters.includes(p.id)} onChange={() => toggleFilter('projectIds', p.id)} className="rounded border-gray-600 bg-black/50 text-aura-accent sm:w-3 sm:h-3" />
+                                 <span className="text-xs text-gray-300 group-hover/item:text-white transition-colors truncate">{p.name}</span>
+                              </label>
+                           ))}
+                        </div>
                      </div>
+
                   </div>
                </div>
             </div>
@@ -406,9 +399,15 @@ const TasksView: React.FC<TasksViewProps> = ({
                const todoId = statuses.find(s => !s.isCompleted)?.id;
                if (doneId) {
                   const newStatus = task.status === doneId ? (todoId || task.status) : doneId;
+                  // If onUpdateTask is provided, use it to persist change
+                  if (onUpdateTask) {
+                     onUpdateTask({ ...task, status: newStatus });
+                  }
+                  // Optimistic update
                   setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
                }
             }}
+            onUpdateTask={onUpdateTask}
             density={effectiveLayout === 'compact' ? 'compact' : 'comfortable'}
          />
       </div>

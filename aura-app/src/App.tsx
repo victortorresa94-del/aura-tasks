@@ -20,6 +20,7 @@ import RecurringView from './views/RecurringView';
 import InsightsView from './views/InsightsView';
 import DashboardView from './views/DashboardView';
 import TaskViewsSidebar from './components/TaskViewsSidebar';
+import ProjectsSidebar from './components/ProjectsSidebar';
 import ProjectDetailView from './views/ProjectDetailView';
 
 import { parseCommand, getDailyQuote } from './utils/auraLogic';
@@ -137,6 +138,8 @@ export default function App() {
   // UI State
   const [showSidebar, setShowSidebar] = useState(false);
   const [showTaskViewsSidebar, setShowTaskViewsSidebar] = useState(false);
+  const [showProjectsSidebar, setShowProjectsSidebar] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(undefined);
   const [showAura, setShowAura] = useState(false);
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -293,6 +296,7 @@ export default function App() {
             customViewData={customView}
             onUpdateView={handleUpdateView}
             onSelectTask={setSelectedTask}
+            onUpdateTask={handleUpdateTask}
             userName={user.name} onOpenSummary={() => setShowDailySummary(true)}
           />
         );
@@ -345,7 +349,7 @@ export default function App() {
   return (
     <div className="flex h-screen w-full bg-aura-black text-aura-white overflow-hidden select-none">
       <Sidebar
-        user={user} currentView={currentView} setView={(v) => { setCurrentView(v); setActiveSection('tasks'); }}
+        user={user} currentView={currentView} setView={setCurrentView}
         activeSection={activeSection} setActiveSection={setActiveSection}
         showMenu={showSidebar} setShowMenu={setShowSidebar}
         onOpenAura={() => setShowAura(true)} onOpenSettings={() => setShowSettings(true)}
@@ -365,6 +369,7 @@ export default function App() {
           showToast(`Pestaña agregada: ${label}`);
         }}
         setShowTaskViewsSidebar={setShowTaskViewsSidebar}
+        setShowProjectsSidebar={setShowProjectsSidebar}
       />
 
       <TaskViewsSidebar
@@ -378,6 +383,32 @@ export default function App() {
           customViewsRepo.delete(user.id, id);
           if (currentView === id) setCurrentView('hoy');
         }}
+      />
+
+      {/* Projects Sidebar - shows when in projects section */}
+      <ProjectsSidebar
+        isOpen={showProjectsSidebar}
+        onClose={() => setShowProjectsSidebar(false)}
+        projects={projects}
+        tasks={tasks}
+        notes={notes}
+        contacts={contacts}
+        currentProjectId={currentProjectId}
+        onSelectProject={(projectId) => {
+          setCurrentProjectId(projectId);
+          setCurrentView(`project_view_${projectId}`);
+        }}
+        onSelectTask={(task) => setSelectedTask(task)}
+        onSelectNote={(note) => {
+          setActiveSection('notes');
+          // TODO: Add note selection
+        }}
+        onSelectContact={(contact) => {
+          setActiveSection('crm');
+          // TODO: Add contact selection
+        }}
+        onCreateProject={(project) => projectsRepo.create(user.id, project as Project)}
+        onDeleteProject={(id) => projectsRepo.delete(user.id, id)}
       />
 
       <main className="flex-1 flex flex-col h-full relative overflow-hidden pb-16 md:pb-0 bg-aura-black">
@@ -423,15 +454,15 @@ export default function App() {
         </div>
 
         {activeSection === 'tasks' && currentView !== 'proyectos' && currentView !== 'recurrentes' && currentView !== 'insights' && (
-          <div className="fixed bottom-[68px] md:bottom-8 left-4 right-4 md:left-[calc(50%+8rem)] md:right-8 z-30 flex justify-center md:justify-end pointer-events-none">
-            <div className={`pointer-events-auto bg-aura-gray/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 p-2 flex items-center gap-2 transition-all duration-300 w-full md:max-w-xl ${isQuickAdding ? 'scale-100 opacity-100 ring-2 ring-aura-accent/20' : 'scale-95 opacity-90 hover:scale-100 hover:opacity-100'}`}>
+          <div className="fixed bottom-[68px] md:bottom-8 left-0 right-0 z-50 flex justify-center pointer-events-none">
+            <div className={`pointer-events-auto bg-aura-gray/90 backdrop-blur-md rounded-full shadow-2xl border border-white/10 p-1.5 pl-4 flex items-center gap-3 transition-all duration-300 w-[90%] md:w-full md:max-w-xl ${isQuickAdding ? 'scale-100 opacity-100 ring-2 ring-aura-accent/20 translate-y-0' : 'scale-95 opacity-90 hover:scale-100 hover:opacity-100 translate-y-1'}`}>
 
               <button
                 onClick={openNewTaskModal}
-                className="w-10 h-10 bg-aura-gray-light hover:bg-aura-accent hover:text-aura-black rounded-xl flex items-center justify-center text-aura-accent flex-shrink-0 transition-colors"
+                className="w-10 h-10 bg-aura-gray-light hover:bg-aura-accent hover:text-aura-black rounded-full flex items-center justify-center text-aura-accent flex-shrink-0 transition-all border border-white/5"
                 title="Crear tarea detallada"
               >
-                <Plus size={24} />
+                <Plus size={22} />
               </button>
 
               <input
@@ -440,10 +471,17 @@ export default function App() {
                 onChange={(e) => setQuickAddText(e.target.value)}
                 onFocus={() => setIsQuickAdding(true)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(quickAddText); }}
-                placeholder="Escribe 'Comprar pan mañana'..."
-                className="flex-1 border-none focus:ring-0 text-aura-white placeholder:text-gray-500 text-base md:text-lg bg-transparent"
+                placeholder="Añadir tarea..."
+                className="flex-1 border-none focus:ring-0 text-aura-white placeholder:text-gray-500 text-base bg-transparent h-full py-2"
               />
-              {quickAddText && <button onClick={() => handleAddTask(quickAddText)} className="bg-aura-white text-aura-black px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">Añadir</button>}
+
+              <button
+                onClick={() => handleAddTask(quickAddText)}
+                disabled={!quickAddText.trim()}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${quickAddText.trim() ? 'bg-aura-white text-aura-black hover:bg-gray-200 shadow-md' : 'bg-white/5 text-gray-500 cursor-not-allowed'}`}
+              >
+                Añadir
+              </button>
             </div>
           </div>
         )}

@@ -52,20 +52,33 @@ export interface Task extends BaseEntity {
   status: string; // Changed from enum to string (Status ID)
   type: TaskType;
   listId: string;
+  projectId?: string; // Linked Project
   notes?: string;
   noteId?: string;
   tags: string[];
   links?: LinkedItem[];
   contactName?: string;
   phoneNumber?: string;
+  // Event-specific fields
+  description?: string;
+  isAllDay?: boolean;
+  startTime?: string;
+  endTime?: string;
   locationName?: string;
+  eventDate?: string;
+  url?: string;
   spotifyUrl?: string;
   amount?: number;
   currency?: string;
-  url?: string;
-  eventDate?: string;
   isRecurring?: boolean;
   frequency?: string;
+  subtasks?: SubTask[];
+}
+
+export interface SubTask {
+  id: string;
+  title: string;
+  isCompleted: boolean;
 }
 
 
@@ -231,3 +244,24 @@ export interface FirestoreContact extends Contact, BaseEntity { }
 export interface FirestoreFile extends FileItem, BaseEntity { }
 export interface FirestoreView extends CustomView, BaseEntity { }
 export interface FirestoreStatus extends TaskStatus, BaseEntity { }
+
+export interface Subscription {
+  id: string;
+  name: string;
+  amount: number;
+  currency: string;
+  frequency: 'monthly' | 'yearly';
+  nextPaymentDate: string;
+  category: string;
+  status: 'active' | 'cancelled';
+  logo?: string;
+}
+
+export interface RecurringExpense {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  frequency: string;
+  payDay?: number;
+}

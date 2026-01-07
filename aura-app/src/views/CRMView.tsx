@@ -23,6 +23,9 @@ const CRMView: React.FC<CRMViewProps> = ({ contacts, setContacts, tasks, notes, 
   // Empty State for New Contact
   const emptyContact: Contact = {
     id: '',
+    ownerId: '',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     name: '',
     role: '',
     company: '',

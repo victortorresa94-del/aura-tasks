@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
   X, Calendar, Flag, Tag, Trash2, Clock, MapPin, Phone,
-  Music, AlignLeft, CheckSquare, ChevronDown, StickyNote, ArrowRight, Plus, Check, Loader, Trophy
+  Music, AlignLeft, CheckSquare, ChevronDown, StickyNote, ArrowRight, Plus, Check, Loader, Trophy, ListTodo
 } from 'lucide-react';
-import { Task, Project, Priority, Note, Contact, FileItem, LinkedItem, TaskStatus } from '../types';
+import { Task, Project, Priority, Note, Contact, FileItem, LinkedItem, TaskStatus, SubTask } from '../types';
 import DatePicker from './DatePicker';
 import LinkManager from './LinkManager';
 import { parseDateFromText } from '../utils/auraLogic';
@@ -30,6 +30,8 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   const [editedTask, setEditedTask] = useState<Task>(task);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
   const isNew = !allTasks.find(t => t.id === task.id);
   const currentStatus = statuses?.find(s => s.id === editedTask.status);
@@ -46,150 +48,258 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   const handleSave = () => {
     if (!editedTask.title.trim()) return;
 
-    const { title: cleanTitle, date: nlpDate } = parseDateFromText(editedTask.title);
+    // Only parse if title changed significantly or is new (simple logic)
+    // Actually, let's just parse if it's new or user wants... but here we just save.
+    // If we want NLP on update, we'd do it. Let's stick to title = title for now to avoid accidental date changes.
+    // Unless it's new.
 
-    const finalTask = {
-      ...editedTask,
-      title: cleanTitle,
-      date: nlpDate || editedTask.date
-    };
+    let finalTask = { ...editedTask };
+    if (isNew) {
+      const { title: cleanTitle, date: nlpDate } = parseDateFromText(editedTask.title);
+      finalTask.title = cleanTitle;
+      if (nlpDate) finalTask.date = nlpDate;
+    }
 
     onUpdate(finalTask);
     onClose();
   };
 
+  // --- Subtasks Logic ---
+  const handleAddSubtask = () => {
+    if (!newSubtaskTitle.trim()) return;
+    const subtask: SubTask = {
+      id: Date.now().toString(),
+      title: newSubtaskTitle,
+      isCompleted: false
+    };
+    const updatedSubtasks = [...(editedTask.subtasks || []), subtask];
+    updateField('subtasks', updatedSubtasks);
+    setNewSubtaskTitle('');
+  };
+
+  const toggleSubtask = (id: string) => {
+    const updatedSubtasks = (editedTask.subtasks || []).map(s =>
+      s.id === id ? { ...s, isCompleted: !s.isCompleted } : s
+    );
+    updateField('subtasks', updatedSubtasks);
+  };
+
+  const handleDeleteSubtask = (id: string) => {
+    const updatedSubtasks = (editedTask.subtasks || []).filter(s => s.id !== id);
+    updateField('subtasks', updatedSubtasks);
+  };
+
+  // Auto-save on unmount or close? No, better explicit save for editing. 
+  // User asked for "Crear tareas sin pensar".
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-6">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:pb-0">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-      <div className="relative w-full h-[90vh] sm:h-auto sm:max-h-[90vh] sm:max-w-2xl bg-aura-black ring-1 ring-aura-gray/50 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-fade-in-up">
-        {/* Drag Handle for Mobile */}
-        <div className="sm:hidden w-full flex justify-center pt-3 pb-1" onClick={onClose}>
-          <div className="w-12 h-1.5 bg-aura-gray rounded-full" />
+      <div className="relative w-full h-[85vh] sm:h-auto sm:max-h-[85vh] sm:max-w-2xl bg-[#0f0f0f] border-t border-x border-white/10 rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up ring-1 ring-white/5">
+        {/* Drag Handle */}
+        <div className="w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing" onClick={onClose}>
+          <div className="w-12 h-1 bg-white/20 rounded-full" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 sm:p-4 border-b border-aura-gray/30">
-          <div className="flex items-center gap-2">
-            <select
-              value={editedTask.listId}
-              onChange={(e) => updateField('listId', e.target.value)}
-              className="text-sm font-medium bg-aura-gray border-none rounded-lg py-1 pl-2 pr-8 focus:ring-0 cursor-pointer text-aura-white"
-            >
-              {lists.map(l => (
-                <option key={l.id} value={l.id} className="text-gray-900">{l.icon} {l.name}</option>
-              ))}
-            </select>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 custom-scrollbar pb-24">
 
-            {/* Status Picker */}
-            {statuses && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowStatusPicker(!showStatusPicker)}
-                  className={`text-xs font-bold uppercase tracking-wider px-2 py-1.5 rounded-lg flex items-center gap-1 text-white shadow-sm ${currentStatus?.color || 'bg-gray-600'}`}
-                >
-                  {currentStatus?.name || 'Estado'}
-                  <ChevronDown size={12} />
-                </button>
-                {showStatusPicker && (
-                  <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-aura-gray-light shadow-xl rounded-lg p-1 w-32 z-50">
-                    {statuses.map(s => (
-                      <button
-                        key={s.id}
-                        onClick={() => { updateField('status', s.id); setShowStatusPicker(false); }}
-                        className="w-full text-left px-2 py-1.5 hover:bg-aura-gray-light rounded flex items-center gap-2"
-                      >
-                        <div className={`w-2 h-2 rounded-full ${s.color}`}></div>
-                        <span className="text-xs font-medium text-aura-white">{s.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+          {/* Main Inputs */}
+          <div className="flex gap-4 items-start">
+            <div className="flex-1">
+              <input
+                autoFocus={isNew}
+                type="text"
+                value={editedTask.title}
+                onChange={(e) => updateField('title', e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                className="w-full text-2xl font-bold text-aura-white border-none p-0 focus:ring-0 placeholder:text-gray-600 bg-transparent leading-relaxed"
+                placeholder="¿Qué hay que hacer?"
+              />
+              <textarea
+                value={editedTask.notes || ''}
+                onChange={(e) => updateField('notes', e.target.value)}
+                placeholder="Añadir detalles..."
+                rows={1}
+                className="w-full text-sm text-gray-400 border-none p-0 mt-2 focus:ring-0 bg-transparent resize-none placeholder:text-gray-700 block"
+                style={{ minHeight: '1.5rem', height: 'auto' }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Favorite Button */}
-            <button
-              onClick={() => onAddTab(task.title, 'task', task, 'tasks')}
-              className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-white/5 rounded-lg transition-colors"
-              title="Añadir a favoritos"
-            >
-              <Trophy size={20} />
-            </button>
+          {/* Metadata Row */}
+          <div className="flex flex-wrap items-center gap-2 mt-2">
 
-            {!isNew && (
-              <button
-                onClick={() => onDelete(task.id)}
-                className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
-              >
-                <Trash2 size={20} />
-              </button>
-            )}
-            <button onClick={onClose} className="p-2 text-gray-400 hover:bg-white/10 rounded-lg transition-colors">
-              <X size={20} />
-            </button>
-          </div>
-        </div>
+            {/* 1. Priority (Colored) */}
+            <div className="flex rounded-lg bg-white/5 p-1 gap-1 border border-white/5">
+              {(['baja', 'media', 'alta'] as Priority[]).map(p => {
+                const isSelected = editedTask.priority === p;
+                let colorClass = 'text-gray-400 hover:text-white hover:bg-white/5';
+                if (isSelected) {
+                  if (p === 'alta') colorClass = 'bg-red-500/20 text-red-400 border border-red-500/20 shadow-sm';
+                  if (p === 'media') colorClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/20 shadow-sm';
+                  if (p === 'baja') colorClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 shadow-sm';
+                }
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar pb-20 sm:pb-6">
-          {/* Title input */}
-          <input
-            autoFocus={isNew}
-            type="text"
-            value={editedTask.title}
-            onChange={(e) => updateField('title', e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-            className="w-full text-2xl font-bold text-aura-white border-none p-0 focus:ring-0 placeholder:text-gray-500 bg-transparent"
-            placeholder="¿Qué hay que hacer? (ej: Comprar pan el viernes)"
-          />
-
-          {/* Properties Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Priority */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                <Flag size={12} /> Prioridad
-              </label>
-              <div className="flex gap-2">
-                {(['baja', 'media', 'alta'] as Priority[]).map(p => (
+                return (
                   <button
                     key={p}
                     onClick={() => updateField('priority', p)}
-                    className={`flex-1 sm:flex-none px-3 py-2 rounded-lg text-sm font-medium capitalize border transition-all ${editedTask.priority === p
-                      ? 'bg-aura-white text-aura-black border-aura-white'
-                      : 'bg-aura-gray/20 text-gray-400 border-white/5 hover:bg-aura-gray/40'
-                      }`}
+                    className={`px-3 py-1 rounded-md text-xs font-bold capitalize transition-all ${colorClass}`}
                   >
                     {p}
                   </button>
-                ))}
-              </div>
+                )
+              })}
             </div>
 
-            {/* Date with Custom Picker */}
-            <div className="space-y-2 relative">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                <Calendar size={12} /> Fecha
-              </label>
+            <div className="w-px h-6 bg-white/10 mx-1" />
+
+            {/* 2. Status (Moved here) */}
+            <div className="relative">
               <button
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className="w-full text-left bg-aura-gray/20 border border-white/5 rounded-lg px-3 py-2 text-sm text-aura-white hover:bg-aura-gray/40 flex items-center justify-between"
+                onClick={() => setShowStatusPicker(!showStatusPicker)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${currentStatus?.isCompleted ? 'bg-aura-accent/10 border-aura-accent/30 text-aura-accent' : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'}`}
               >
-                <span>{new Date(editedTask.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-                <ChevronDown size={14} className="text-gray-400" />
+                <div className={`w-2 h-2 rounded-full ${currentStatus?.color || 'bg-gray-400'}`} />
+                {currentStatus?.name || 'Estado'}
+                <ChevronDown size={12} className="opacity-50" />
               </button>
 
+              {showStatusPicker && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl z-50 p-1 animate-fade-in-up">
+                  {statuses?.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => { updateField('status', s.id); setShowStatusPicker(false); }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 flex items-center gap-2 text-xs text-gray-300 transition-colors"
+                    >
+                      <div className={`w-2 h-2 rounded-full ${s.color}`} />
+                      {s.name}
+                      {editedTask.status === s.id && <Check size={12} className="ml-auto text-aura-accent" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 3. Date */}
+            <div className="relative">
+              <button
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${editedTask.date ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}
+              >
+                <Calendar size={14} />
+                {new Date(editedTask.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+              </button>
               {showDatePicker && (
-                <div className="absolute top-full left-0 z-10 w-full sm:w-auto">
-                  <div className="fixed inset-0 z-0 sm:hidden" onClick={() => setShowDatePicker(false)}></div>
-                  <DatePicker
-                    currentDate={editedTask.date}
-                    onChange={(date) => updateField('date', date)}
-                    onClose={() => setShowDatePicker(false)}
+                <div className="absolute top-full left-0 mt-2 z-50">
+                  <DatePicker currentDate={editedTask.date} onChange={(d) => { updateField('date', d); setShowDatePicker(false); }} onClose={() => setShowDatePicker(false)} />
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1" />
+
+            {/* 4. Project (Custom Dropdown) */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProjectPicker(!showProjectPicker)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${editedTask.listId ? 'bg-white/5 border-white/10 text-gray-300 hover:text-white hover:border-aura-accent/30' : 'bg-transparent border-transparent text-gray-500'}`}
+              >
+                <span className="text-gray-500">#</span>
+                {lists.find(l => l.id === editedTask.listId)?.name || 'Sin proyecto'}
+                <ChevronDown size={12} className="text-gray-500" />
+              </button>
+
+              {showProjectPicker && (
+                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl z-50 p-2 animate-fade-in-up max-h-60 overflow-y-auto custom-scrollbar">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase px-2 py-1 mb-1">Seleccionar Proyecto</div>
+                  {lists.map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => { updateField('listId', l.id); setShowProjectPicker(false); }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 flex items-center gap-2 text-xs text-gray-300 transition-colors"
+                    >
+                      <span className={l.color}>{l.icon}</span>
+                      <span className="truncate">{l.name}</span>
+                      {editedTask.listId === l.id && <Check size={12} className="ml-auto text-aura-accent" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="h-px bg-white/5 w-full my-4" />
+
+          {/* Subtasks Section */}
+          {/* Subtasks Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 tracking-wider"><ListTodo size={12} /> Subtareas</h4>
+              <span className="text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">
+                {editedTask.subtasks?.filter(s => s.isCompleted).length || 0} / {editedTask.subtasks?.length || 0}
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              {(editedTask.subtasks || []).map(sub => (
+                <div key={sub.id} className="group flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-all border border-transparent hover:border-white/5">
+                  <button onClick={() => toggleSubtask(sub.id)} className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shadow-sm ${sub.isCompleted ? 'bg-aura-accent border-aura-accent text-aura-black' : 'border-gray-600 hover:border-gray-400'}`}>
+                    {sub.isCompleted && <Check size={10} strokeWidth={3} />}
+                  </button>
+                  <input
+                    value={sub.title}
+                    onChange={(e) => {
+                      const updated = (editedTask.subtasks || []).map(s => s.id === sub.id ? { ...s, title: e.target.value } : s);
+                      updateField('subtasks', updated);
+                    }}
+                    className={`text-sm flex-1 bg-transparent border-none p-0 focus:ring-0 ${sub.isCompleted ? 'line-through text-gray-500' : 'text-gray-300'}`}
                   />
+                  <button onClick={() => handleDeleteSubtask(sub.id)} className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Subtask Input */}
+            <div className="relative group">
+              {!newSubtaskTitle && (editedTask.subtasks?.length || 0) === 0 ? (
+                <button
+                  onClick={() => { setNewSubtaskTitle(' '); setTimeout(() => setNewSubtaskTitle(''), 50); }}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-aura-white px-2 py-2 rounded-xl border border-dashed border-white/10 hover:border-white/20 hover:bg-white/5 w-full transition-all group"
+                >
+                  <Plus size={16} className="group-hover:text-aura-accent transition-colors" />
+                  Añadir subtarea
+                </button>
+              ) : (
+                <div className="flex items-center gap-3 px-2 py-1 bg-white/5 rounded-xl border border-white/5 focus-within:border-aura-accent/30 focus-within:bg-white/10 transition-all">
+                  <Plus size={16} className="text-gray-500" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleAddSubtask();
+                        // Keep focus? React handles existing refocus usually
+                      }
+                    }}
+                    placeholder="Escribe una subtarea..."
+                    className="flex-1 bg-transparent border-none text-sm focus:ring-0 text-white placeholder:text-gray-500 p-0 h-8"
+                  />
+                  {newSubtaskTitle && (
+                    <button onClick={handleAddSubtask} className="text-xs font-bold text-aura-black bg-aura-accent px-2 py-1 rounded hover:bg-white transition-colors">Intro</button>
+                  )}
                 </div>
               )}
             </div>
@@ -208,37 +318,31 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
             />
           </div>
 
-          {/* Simple Notes */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-              <AlignLeft size={12} /> Descripción / Detalles
-            </label>
-            <textarea
-              value={editedTask.notes || ''}
-              onChange={(e) => updateField('notes', e.target.value)}
-              placeholder="Añade detalles rápidos..."
-              className="w-full h-24 text-sm bg-aura-gray/20 border border-white/10 rounded-xl p-4 focus:border-aura-accent focus:ring-aura-accent resize-none leading-relaxed text-aura-white placeholder:text-gray-600"
-            />
-          </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-aura-gray/30 flex justify-end gap-3 bg-aura-black/80 backdrop-blur-sm sticky bottom-0 z-20">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 text-gray-400 hover:bg-white/5 rounded-xl transition-colors font-bold text-sm"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!editedTask.title.trim()}
-            className="px-6 py-2.5 bg-aura-white text-aura-black rounded-xl font-bold shadow-lg hover:bg-gray-200 transition-all flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
-          >
-            <Check size={18} />
-            {isNew ? 'Crear Tarea' : 'Guardar Cambios'}
-          </button>
+        <div className="p-4 border-t border-white/10 bg-[#0f0f0f] flex justify-between items-center sticky bottom-0 z-20">
+          <div className="flex items-center gap-1">
+            {!isNew && (
+              <button onClick={() => onDelete(task.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors" title="Eliminar">
+                <Trash2 size={18} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white transition-colors">Cancelar</button>
+            <button
+              onClick={handleSave}
+              disabled={!editedTask.title.trim()}
+              className="px-5 py-2 bg-aura-white text-aura-black rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isNew ? <Plus size={16} /> : <Check size={16} />}
+              {isNew ? 'Añadir tarea' : 'Guardar'}
+            </button>
+          </div>
         </div>
+
       </div>
     </div>
   );
