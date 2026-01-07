@@ -4,6 +4,7 @@ import {
   ChevronDown, CheckCircle2, Filter, Plus, X, FolderKanban,
   CheckSquare, StickyNote, Users, BarChart3, Image as ImageIcon, LayoutDashboard
 } from 'lucide-react';
+import { logout } from '../firebase/auth';
 import { User as UserType, CustomView, Project, Priority } from '../types';
 import { AURA_IMAGE } from '../utils/constants';
 
@@ -78,9 +79,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // ... (handleLogout, handleSettings, handleCreateView remain same) ...
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('¿Cerrar sesión de ' + user.email + '?')) {
-      window.location.reload();
+      try {
+        await logout();
+        // AuthContext will handle the redirect to login
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
     }
   };
 

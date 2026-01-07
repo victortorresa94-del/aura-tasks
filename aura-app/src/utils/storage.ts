@@ -36,8 +36,6 @@ export const storage = {
         }
     },
 
-    // Generic migration helper
-    // usage: migrateData('my_data_v1', (data) => { ...transform... });
     migrate: <T>(key: string, version: number, migrationFn: (data: any) => T) => {
         try {
             const currentVersionKey = `${key}_version`;
@@ -56,6 +54,49 @@ export const storage = {
             }
         } catch (e) {
             console.error(`Migration failed for ${key}`, e);
+        }
+    },
+
+    // --- DATA MANAGEMENT ---
+
+    // Export all data starting with a prefix (default 'aura_')
+    exportAll: (prefix: string = 'aura_'): string => {
+        const data: Record<string, any> = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefix)) {
+                try {
+                    const value = localStorage.getItem(key);
+                    if (value) data[key] = JSON.parse(value);
+                } catch (e) {
+                    console.warn(`Failed to parse ${key} during export`, e);
+                }
+            }
+        }
+        return JSON.stringify({
+            version: 1,
+            timestamp: Date.now(),
+            data: data
+        }, null, 2);
+    },
+
+    // Import data
+    importAll: (jsonString: string): boolean => {
+        try {
+            const parsed = JSON.parse(jsonString);
+            if (!parsed.data) throw new Error("Invalid backup format");
+
+            // Validate basic structure (optional)
+
+            // Clear current data? Or just overwrite? Overwriting is safer usually, but clearing ensures no zombies.
+            // Let's iterate and set.
+            Object.entries(parsed.data).forEach(([key, value]) => {
+                localStorage.setItem(key, JSON.stringify(value));
+            });
+            return true;
+        } catch (e) {
+            console.error("Import failed", e);
+            return false;
         }
     }
 };

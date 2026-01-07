@@ -27,6 +27,10 @@ import { AURA_IMAGE } from './utils/constants';
 
 // --- GLOBAL DATA (Persisted) ---
 import { usePersistedState } from './hooks/usePersistedState';
+import { useAuth } from './contexts/AuthContext';
+// --- REPOSITORIES ---
+import { tasksRepo, projectsRepo, notesRepo, contactsRepo, filesRepo, customViewsRepo } from './firebase/repositories';
+import { useFirestoreCollection } from './hooks/useFirestoreCollection';
 
 export default function App() {
   // Main Section Navigation
@@ -45,21 +49,7 @@ export default function App() {
     { id: 'done', name: 'Completada', color: 'bg-green-500', isCompleted: true }
   ], 'aura_statuses');
 
-  const [tasks, setTasks] = usePersistedState<Task[]>('tasks', [], 'aura_tasks');
-
-  // One-time migration for task statuses
-  useEffect(() => {
-    setTasks(currentTasks => {
-      let changed = false;
-      const migrated = currentTasks.map(t => {
-        if (t.status === 'pendiente') { changed = true; return { ...t, status: 'todo' }; }
-        if (t.status === 'en_progreso') { changed = true; return { ...t, status: 'in_progress' }; }
-        if (t.status === 'completada') { changed = true; return { ...t, status: 'done' }; }
-        return t;
-      });
-      return changed ? migrated : currentTasks;
-    });
-  }, []);
+  const { data: tasks, loading: tasksLoading } = useFirestoreCollection(tasksRepo);
 
   // Tab Handlers
   const handleAddTab = (tab: Tab) => {
@@ -93,10 +83,13 @@ export default function App() {
         groupBy: 'status',
         filters: { projectIds: [tab.data.id] }
       };
-      setCustomViews(prev => {
-        if (prev.find(v => v.id === viewId)) return prev;
-        return [...prev, projectView];
-      });
+
+      // Auto-create view if not exists (checked by ID consistency with Tab)
+      const exists = customViews.find(v => v.id === viewId);
+      if (!exists) {
+        customViewsRepo.create(user.id, projectView);
+      }
+
       setCurrentView(viewId);
 
     } else if (tab.type === 'note') {
@@ -137,23 +130,43 @@ export default function App() {
     else setActiveTabId(null);
   }, [activeSection, currentView, tabs]);
 
+  // --- FIRESTORE COLLECTIONS ---
+  const { data: projects, loading: projectsLoading } = useFirestoreCollection(projectsRepo);
+  const { data: notes, loading: notesLoading } = useFirestoreCollection(notesRepo);
+  const { data: contacts, loading: contactsLoading } = useFirestoreCollection(contactsRepo);
+  const { data: files } = useFirestoreCollection(filesRepo);
 
-  const [projects, setProjects] = usePersistedState<Project[]>('projects', [
-    { id: '1', name: 'Personal', icon: '📝', color: 'text-blue-500' },
-    { id: '2', name: 'Trabajo', icon: '💼', color: 'text-red-500' }
-  ], 'aura_projects');
-
-  const [notes, setNotes] = usePersistedState<Note[]>('notes', [], 'aura_notes');
-  const [contacts, setContacts] = usePersistedState<Contact[]>('crm', [], 'aura_crm');
   const [transactions, setTransactions] = usePersistedState<Transaction[]>('finance', [], 'aura_finance');
   const [habits, setHabits] = usePersistedState<Habit[]>('habits', [], 'aura_habits');
-  const [files, setFiles] = usePersistedState<FileItem[]>('files', [
-    { id: 'f0', parentId: null, name: 'Documentos Trabajo', type: 'folder', source: 'local', updatedAt: Date.now() },
-    { id: 'f1', parentId: 'f0', name: 'Contrato.pdf', type: 'pdf', source: 'local', size: '1.2MB', updatedAt: Date.now() },
-    { id: 'f2', parentId: null, name: 'Logo.png', type: 'image', source: 'local', size: '0.5MB', updatedAt: Date.now() }
-  ], 'aura_files');
-  const [user, setUser] = usePersistedState<User>('user', { name: 'Víctor', email: 'victor@aura.app', avatar: '👨‍💻', completedTasks: 0 }, 'aura_user');
-  const [customViews, setCustomViews] = usePersistedState<CustomView[]>('custom_views', [], 'aura_custom_views');
+  // Files persist removed (replaced by filesRepo collection)
+  // const [files, setFiles] = ... removed
+
+
+  // --- AUTH INTEGRATION ---
+  const { user: authUser } = useAuth();
+
+  // We maintain a local 'user' state for app-specific fields (like completedTasks)
+  // but sync basic info from Auth
+  const [localUserPreferences, setLocalUserPreferences] = usePersistedState<Partial<User>>('user_prefs', {
+    completedTasks: 0
+  }, 'aura_user_prefs');
+
+  const user: User = useMemo(() => ({
+    id: authUser?.uid || 'guest',
+    name: authUser?.displayName || 'Usuario',
+    email: authUser?.email || '',
+    avatar: authUser?.photoURL || '👨‍💻',
+    completedTasks: localUserPreferences.completedTasks || 0,
+    onboardingCompleted: true
+  }), [authUser, localUserPreferences]);
+
+  const updateUser = (updated: User) => {
+    // Update local prefs
+    setLocalUserPreferences(prev => ({ ...prev, ...updated }));
+    // TODO: Update Firebase Profile if name/avatar changed (handled in SettingsModal)
+  };
+
+  const { data: customViews } = useFirestoreCollection(customViewsRepo);
 
   // Chat History
   const [chatSessions, setChatSessions] = usePersistedState<ChatSession[]>('chat_sessions', [], 'aura_chat_sessions');
@@ -176,10 +189,10 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleAddTask = (text: string | Task, eventDate?: string) => {
+  const handleAddTask = async (text: string | Task, eventDate?: string) => {
     // If passed a full Task object (from Modal or Calendar)
     if (typeof text === 'object') {
-      setTasks(prev => [...prev, text]);
+      await tasksRepo.create(user.id, text);
       showToast("Tarea creada");
       return;
     }
@@ -203,7 +216,7 @@ export default function App() {
       ...p
     }));
 
-    setTasks(prev => [...prev, ...newTasks]);
+    await tasksRepo.batchCreate(user.id, newTasks);
     setQuickAddText('');
     setIsQuickAdding(false);
 
@@ -231,28 +244,25 @@ export default function App() {
     setSelectedTask(newTask);
   };
 
-  const handleUpdateTask = (updated: Task) => {
-    setTasks(prev => {
-      const exists = prev.find(t => t.id === updated.id);
-      if (exists) {
-        return prev.map(t => t.id === updated.id ? updated : t);
-      } else {
-        if (updated.title.trim()) {
-          showToast("Tarea creada");
-          return [...prev, updated];
-        }
-        return prev;
+  const handleUpdateTask = async (updated: Task) => {
+    const exists = tasks.find(t => t.id === updated.id);
+    if (exists) {
+      await tasksRepo.update(user.id, updated.id, updated);
+    } else {
+      if (updated.title.trim()) {
+        await tasksRepo.create(user.id, updated);
+        showToast("Tarea creada");
       }
-    });
+    }
   };
 
-  const handleDeleteTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTask = async (id: string) => {
+    await tasksRepo.delete(user.id, id);
     setSelectedTask(null);
   };
 
   const handleUpdateView = (updatedView: CustomView) => {
-    setCustomViews(prev => prev.map(v => v.id === updatedView.id ? updatedView : v));
+    customViewsRepo.update(user.id, updatedView.id, updatedView);
   };
 
   const renderActiveSection = () => {
@@ -278,8 +288,8 @@ export default function App() {
               allContacts={contacts}
               allFiles={files}
               statuses={statuses}
-              onUpdateProject={(id, updates) => setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))}
-              onUpdateTask={(id, updates) => setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))}
+              onUpdateProject={(id, updates) => projectsRepo.update(user.id, id, updates)}
+              onUpdateTask={(id, updates) => tasksRepo.update(user.id, id, updates)}
               onCreateTask={handleAddTask}
               onBack={() => setCurrentView('proyectos')}
               onAddTab={(label, type, data, path) => handleAddTab({ id: Date.now().toString(), label, type, data, path })}
@@ -292,7 +302,7 @@ export default function App() {
           <ProjectsView
             projects={projects}
             tasks={tasks}
-            setProjects={setProjects}
+            setProjects={(newProjects: any) => { /* Handle projects setter removal, maybe add adapter? */ }}
             onOpenProject={(id) => setCurrentView(id)}
           />
         );
@@ -300,7 +310,7 @@ export default function App() {
       case 'tasks':
         if (currentView === 'proyectos') {
           // Redirect legacy access to new section
-          return <ProjectsView projects={projects} tasks={tasks} setProjects={setProjects} onOpenProject={(id) => { setActiveSection('projects'); setCurrentView(id); }} />;
+          return <ProjectsView projects={projects} tasks={tasks} setProjects={() => { }} onOpenProject={(id) => { setActiveSection('projects'); setCurrentView(id); }} />;
         }
         if (currentView === 'recurrentes') {
           return <RecurringView tasks={tasks} onAddTask={handleAddTask} />;
@@ -314,7 +324,7 @@ export default function App() {
 
         return (
           <TasksView
-            tasks={tasks} setTasks={setTasks}
+            tasks={tasks} setTasks={() => { }} // Disabled setTasks prop legacy
             projects={projects} statuses={statuses}
             currentView={currentView}
             customViewData={customView}
@@ -326,20 +336,20 @@ export default function App() {
 
       case 'notes': return (
         <NotesView
-          notes={notes} setNotes={setNotes}
+          notes={notes} setNotes={() => { }}
           tasks={tasks} contacts={contacts} files={files}
           showToast={showToast}
         />
       );
       case 'crm': return (
         <CRMView
-          contacts={contacts} setContacts={setContacts}
+          contacts={contacts} setContacts={() => { }}
           tasks={tasks} notes={notes} files={files}
           showToast={showToast}
         />
       );
       case 'planning': return <PlanningView tasks={tasks} onAddTask={handleAddTask} transactions={transactions} setTransactions={setTransactions} habits={habits} setHabits={setHabits} />;
-      case 'gallery': return <GalleryView files={files} setFiles={setFiles} />;
+      case 'gallery': return <GalleryView files={files} setFiles={() => { }} />;
       default: return null;
     }
   };
@@ -355,9 +365,9 @@ export default function App() {
         // Custom Views Props
         customViews={customViews}
         projects={projects}
-        onCreateView={(v) => setCustomViews(prev => [...prev, v])}
+        onCreateView={(v) => customViewsRepo.create(v, user.id)}
         onDeleteView={(id) => {
-          setCustomViews(prev => prev.filter(v => v.id !== id));
+          customViewsRepo.delete(id, user.id);
           if (currentView === id) setCurrentView('hoy');
         }}
         // Tabs Support
@@ -379,9 +389,9 @@ export default function App() {
         currentView={currentView}
         setView={setCurrentView}
         customViews={customViews}
-        onCreateView={(v) => setCustomViews(prev => [...prev, v])}
+        onCreateView={(v) => customViewsRepo.create(v, user.id)}
         onDeleteView={(id) => {
-          setCustomViews(prev => prev.filter(v => v.id !== id));
+          customViewsRepo.delete(id, user.id);
           if (currentView === id) setCurrentView('hoy');
         }}
       />
@@ -473,39 +483,39 @@ export default function App() {
         contacts={contacts}
         projects={projects}
         onAddTask={handleAddTask}
-        onUpdateTask={(id, updates) => {
-          setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+        onUpdateTask={async (id, updates) => {
+          await tasksRepo.update(user.id, id, updates);
           showToast("Tarea actualizada por Aura");
         }}
         onCommand={handleAddTask}
         onAddEvent={(title, date) => handleAddTask({ id: Date.now().toString(), title, date, priority: 'media', status: 'todo', type: 'event', listId: '1', tags: [] })}
-        onCreateContact={(contact) => {
-          setContacts(prev => [...prev, {
+        onCreateContact={async (contact) => {
+          await contactsRepo.create(user.id, {
             name: 'Nuevo Contacto',
             email: '', phone: '', tags: [], notes: '',
             ...contact,
             id: Date.now().toString(),
             lastContact: Date.now()
-          }]);
+          });
           showToast("Contacto creado");
         }}
         onUpdateContact={(id, updates) => {
-          setContacts(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+          contactsRepo.update(user.id, id, updates);
           showToast("Contacto actualizado");
         }}
         notes={notes}
-        onCreateNote={(title, content) => {
-          setNotes(prev => [...prev, {
+        onCreateNote={async (title, content) => {
+          await notesRepo.create(user.id, {
             id: Date.now().toString(),
             title,
             content,
             blocks: [{ id: 'b1', type: 'text', content }],
             updatedAt: Date.now()
-          }]);
+          }, user.id);
           showToast("Nota creada");
         }}
         onUpdateNote={(id, updates) => {
-          setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates, updatedAt: Date.now() } : n));
+          notesRepo.update(user.id, id, { ...updates, updatedAt: Date.now() });
           showToast("Nota actualizada");
         }}
         // History Props
@@ -529,11 +539,11 @@ export default function App() {
         }}
       />
 
-      <DailySummary isOpen={showDailySummary} onClose={() => setShowDailySummary(false)} tasks={tasks} userName={user.name} onUpdateTask={(t) => setTasks(prev => prev.map(old => old.id === t.id ? t : old))} />
+      <DailySummary isOpen={showDailySummary} onClose={() => setShowDailySummary(false)} tasks={tasks} userName={user.name} onUpdateTask={(t) => tasksRepo.update(user.id, t.id, t)} />
 
       <SettingsModal
         isOpen={showSettings} onClose={() => setShowSettings(false)}
-        user={user} onUpdateUser={setUser}
+        user={user} onUpdateUser={updateUser}
         statuses={statuses} setStatuses={setStatuses}
       />
 
