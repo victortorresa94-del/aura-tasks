@@ -20,7 +20,7 @@ export interface LinkedItem {
   subtitle?: string;
 }
 
-export interface FileItem {
+export interface FileItem extends BaseEntity {
   id: string;
   parentId: string | null;
   name: string;
@@ -30,7 +30,6 @@ export interface FileItem {
   url?: string;
   thumbnail?: string;
   links?: LinkedItem[];
-  updatedAt?: number;
 }
 
 export interface Tag {
@@ -39,8 +38,14 @@ export interface Tag {
   color: string;
 }
 
-export interface Task {
+export interface BaseEntity {
   id: string;
+  ownerId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Task extends BaseEntity {
   title: string;
   priority: Priority;
   date: string;
@@ -69,7 +74,7 @@ export type ViewLayout = 'list' | 'compact' | 'kanban' | 'grid';
 export type GroupBy = 'none' | 'status' | 'priority' | 'project';
 export type SortBy = 'date' | 'priority' | 'title';
 
-export interface CustomView {
+export interface CustomView extends BaseEntity {
   id: string;
   name: string;
   icon: string;
@@ -127,8 +132,8 @@ export interface Tab {
 }
 
 // Extended Project Interface
-export interface Project {
-  id: string;
+export interface Project extends BaseEntity {
+  id: string; // BaseEntity has id, but keeping for clarity or just remove
   name: string;
   icon: string;
   color: string;
@@ -136,21 +141,20 @@ export interface Project {
   isFavorite?: boolean;
 }
 
-export interface Note {
+export interface Note extends BaseEntity {
   id: string;
   parentId?: string | null;
   projectId?: string; // Linked Project
   title: string;
   content: string;
   blocks: NoteBlock[];
-  updatedAt: number;
   coverImage?: string;
   icon?: string;
   expanded?: boolean;
   links?: LinkedItem[];
 }
 
-export interface Contact {
+export interface Contact extends BaseEntity {
   id: string;
   name: string;
   projectId?: string; // Linked Project
@@ -185,10 +189,12 @@ export interface Habit {
 }
 
 export interface User {
+  id: string;
   name: string;
   email: string;
   avatar: string;
   completedTasks: number;
+  onboardingCompleted?: boolean;
 }
 
 export interface Email {
@@ -216,3 +222,12 @@ export interface ChatSession {
   messages: ChatMessage[];
   lastActive: number;
 }
+
+// Firestore Entity Wrappers
+export interface FirestoreTask extends Task, BaseEntity { }
+export interface FirestoreNote extends Note, BaseEntity { }
+export interface FirestoreProject extends Project, BaseEntity { }
+export interface FirestoreContact extends Contact, BaseEntity { }
+export interface FirestoreFile extends FileItem, BaseEntity { }
+export interface FirestoreView extends CustomView, BaseEntity { }
+export interface FirestoreStatus extends TaskStatus, BaseEntity { }

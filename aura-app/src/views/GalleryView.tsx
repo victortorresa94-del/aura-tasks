@@ -10,10 +10,12 @@ import { loadGoogleScripts, handleAuthClick, listDriveFiles, mapMimeTypeToAuraTy
 
 interface GalleryViewProps {
   files: FileItem[];
-  setFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
+  onCreateFile?: (file: FileItem) => void;
+  onDeleteFile?: (id: string) => void;
+  onUpdateFile?: (id: string, updates: Partial<FileItem>) => void;
 }
 
-const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
+const GalleryView: React.FC<GalleryViewProps> = ({ files, onCreateFile, onDeleteFile, onUpdateFile }) => {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [activeSource, setActiveSource] = useState<'local' | 'google_drive'>('local');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -51,10 +53,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
       parentId: currentFolderId,
       name,
       type: 'folder',
-      source: 'local',
-      updatedAt: Date.now()
+      source: 'local', // Or 'aura'
+      updatedAt: Date.now(),
+      createdAt: Date.now(),
+      ownerId: '' // Repo sets this
     };
-    setFiles(prev => [...prev, newFolder]);
+    if (onCreateFile) onCreateFile(newFolder);
   };
 
   const uploadFile = () => {
@@ -72,9 +76,11 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
       type: randomType,
       source: 'local',
       size: `${(Math.random() * 5).toFixed(1)} MB`,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      createdAt: Date.now(),
+      ownerId: ''
     };
-    setFiles(prev => [...prev, newFile]);
+    if (onCreateFile) onCreateFile(newFile);
   };
 
   // --- DRIVE INTEGRATION ---
@@ -139,9 +145,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
     if (!draggedFileId) return;
     if (activeSource === 'google_drive') return; // Read only for now
 
-    setFiles(prev => prev.map(f =>
-      f.id === draggedFileId ? { ...f, parentId: targetFolderId } : f
-    ));
+    if (onUpdateFile) onUpdateFile(draggedFileId, { parentId: targetFolderId });
     setDraggedFileId(null);
   };
 
@@ -203,27 +207,27 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
   };
 
   return (
-    <div className="flex h-full bg-white relative overflow-hidden">
+    <div className="flex h-full bg-aura-black relative overflow-hidden">
 
       {/* SIDEBAR */}
-      <div className="w-20 md:w-64 bg-gray-50 border-r border-gray-100 flex flex-col shrink-0">
+      <div className="w-20 md:w-64 bg-aura-black border-r border-white/5 flex flex-col shrink-0">
         <div className="p-4 md:p-6">
-          <h2 className="hidden md:block text-xl font-bold text-gray-900 mb-6">Archivos</h2>
+          <h2 className="hidden md:block text-xl font-bold text-aura-white mb-6">Archivos</h2>
           <div className="space-y-2">
             <button
               onClick={() => { setActiveSource('local'); setCurrentFolderId(null); }}
-              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all ${activeSource === 'local' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all ${activeSource === 'local' ? 'bg-aura-accent text-aura-black shadow-md font-bold' : 'text-gray-400 hover:bg-white/5'}`}
             >
               <HardDrive size={20} />
-              <span className="hidden md:inline font-medium">Mis Archivos</span>
+              <span className="hidden md:inline">Mis Archivos</span>
             </button>
 
             <button
               onClick={() => { setActiveSource('google_drive'); }}
-              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all ${activeSource === 'google_drive' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all ${activeSource === 'google_drive' ? 'bg-blue-600 text-white shadow-md font-bold' : 'text-gray-400 hover:bg-white/5'}`}
             >
               <Cloud size={20} />
-              <span className="hidden md:inline font-medium">Google Drive</span>
+              <span className="hidden md:inline">Google Drive</span>
             </button>
           </div>
         </div>
@@ -234,12 +238,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
 
         {/* Drive Not Connected State */}
         {activeSource === 'google_drive' && !isDriveConnected ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in-up">
-            <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in-up bg-aura-black">
+            <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/20">
               <Cloud size={48} className="text-blue-500" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Conecta Google Drive</h3>
-            <p className="text-gray-500 max-w-sm mb-8">
+            <h3 className="text-2xl font-bold text-aura-white mb-2">Conecta Google Drive</h3>
+            <p className="text-gray-400 max-w-sm mb-8">
               {hasClientId()
                 ? "Accede a tus documentos reales usando la API de Google Drive."
                 : "⚠️ Configuración requerida: Necesitas un CLIENT_ID de Google Cloud."}
@@ -248,7 +252,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
             <button
               onClick={connectDrive}
               disabled={!isDriveReady}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-5 h-5 bg-white rounded-full p-0.5" alt="Drive" />
               {isDriveReady ? 'Vincular Cuenta' : 'Cargando API...'}
@@ -257,7 +261,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
         ) : (
           <>
             {/* Toolbar */}
-            <div className="h-16 border-b border-gray-100 flex items-center justify-between px-4 md:px-6 shrink-0 bg-white">
+            <div className="h-16 border-b border-white/5 flex items-center justify-between px-4 md:px-6 shrink-0 bg-aura-black/50 backdrop-blur-md">
               {/* Breadcrumbs */}
               <div className="flex items-center gap-1 text-sm text-gray-500 overflow-hidden">
                 <button
@@ -273,7 +277,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
                   }}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, null)}
-                  className="hover:bg-gray-100 p-1.5 rounded-lg transition-colors flex items-center gap-1"
+                  className="hover:bg-white/5 p-1.5 rounded-lg transition-colors flex items-center gap-1 text-gray-400 hover:text-aura-white"
                 >
                   <Home size={16} />
                 </button>
@@ -295,7 +299,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
                       }}
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, crumb.id)}
-                      className={`hover:bg-gray-100 px-2 py-1 rounded-lg transition-colors max-w-[100px] truncate ${idx === breadcrumbs.length - 1 ? 'font-bold text-gray-900' : ''}`}
+                      className={`hover:bg-white/10 px-2 py-1 rounded-lg transition-colors max-w-[100px] truncate ${idx === breadcrumbs.length - 1 ? 'font-bold text-aura-white' : 'text-gray-400'}`}
                     >
                       {crumb.name}
                     </button>
@@ -306,30 +310,30 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
               {/* Actions */}
               <div className="flex items-center gap-2">
                 <div className="relative hidden md:block">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Buscar..."
-                    className="pl-9 pr-3 py-1.5 bg-gray-50 border-none rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 w-40 transition-all focus:w-60"
+                    className="pl-9 pr-3 py-1.5 bg-aura-gray/20 border-white/5 border rounded-lg text-sm text-aura-white focus:ring-1 focus:ring-aura-accent w-40 transition-all focus:w-60 placeholder:text-gray-600"
                   />
                 </div>
-                <div className="h-6 w-px bg-gray-200 mx-2"></div>
-                <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                <div className="h-6 w-px bg-white/10 mx-2"></div>
+                <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-aura-accent/10 text-aura-accent' : 'text-gray-400 hover:text-aura-white'}`}>
                   <LayoutGrid size={18} />
                 </button>
-                <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-aura-accent/10 text-aura-accent' : 'text-gray-400 hover:text-aura-white'}`}>
                   <ListIcon size={18} />
                 </button>
                 <div className="h-6 w-px bg-gray-200 mx-2"></div>
 
                 {activeSource === 'local' && (
-                  <button onClick={addFolder} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Nueva Carpeta">
+                  <button onClick={addFolder} className="p-2 text-gray-400 hover:bg-white/10 rounded-lg hover:text-aura-white" title="Nueva Carpeta">
                     <FolderPlus size={20} />
                   </button>
                 )}
 
-                <button onClick={uploadFile} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-700">
+                <button onClick={uploadFile} className="flex items-center gap-2 px-3 py-1.5 bg-aura-accent text-aura-black rounded-lg text-sm font-bold shadow-sm hover:bg-white transition-colors">
                   {activeSource === 'local' ? <Upload size={16} /> : <ExternalLink size={16} />}
                   <span className="hidden sm:inline">{activeSource === 'local' ? 'Subir' : 'Abrir Drive'}</span>
                 </button>
@@ -338,7 +342,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
 
             {/* File Area */}
             <div
-              className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative"
+              className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative bg-aura-black"
               onDragOver={handleDragOver}
               onDrop={(e) => {
                 if (draggedFileId) {
@@ -350,18 +354,18 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
               }}
             >
               {isLoadingDrive && (
-                <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center">
-                  <RefreshCw className="animate-spin text-indigo-600" size={32} />
+                <div className="absolute inset-0 bg-aura-black/80 z-10 flex items-center justify-center">
+                  <RefreshCw className="animate-spin text-aura-accent" size={32} />
                 </div>
               )}
 
               {currentFiles.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-gray-400 pb-20">
-                  <div className="w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-dashed border-gray-200">
+                <div className="h-full flex flex-col items-center justify-center text-gray-500 pb-20">
+                  <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mb-4 border border-dashed border-white/10">
                     <Folder size={32} className="opacity-20" />
                   </div>
-                  <p className="font-medium">Carpeta vacía</p>
-                  <p className="text-xs mt-2">
+                  <p className="font-medium text-aura-white">Carpeta vacía</p>
+                  <p className="text-xs mt-2 text-gray-500">
                     {activeSource === 'local' ? 'Arrastra archivos aquí' : 'No hay archivos en esta carpeta de Drive'}
                   </p>
                 </div>
@@ -386,12 +390,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
                         }
                       }}
                       className={`
-                          group relative border border-gray-100 rounded-xl transition-all cursor-pointer select-none
+                          group relative border border-white/5 rounded-xl transition-all cursor-pointer select-none
                           ${viewMode === 'grid'
-                          ? 'bg-white p-4 hover:shadow-lg hover:border-indigo-100 flex flex-col aspect-[4/3] md:aspect-square'
-                          : 'bg-white px-4 py-3 flex items-center gap-4 hover:bg-gray-50'
+                          ? 'bg-aura-gray/20 p-4 hover:shadow-lg hover:border-aura-accent/30 flex flex-col aspect-[4/3] md:aspect-square'
+                          : 'bg-aura-gray/10 px-4 py-3 flex items-center gap-4 hover:bg-white/5'
                         }
-                          ${draggedFileId === file.id ? 'opacity-50 dashed border-2 border-indigo-300' : ''}
+                          ${draggedFileId === file.id ? 'opacity-50 dashed border-2 border-aura-accent' : ''}
                         `}
                     >
                       {/* Grid View Content */}
@@ -399,7 +403,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
                         <>
                           <div className="flex-1 flex items-center justify-center mb-2 relative">
                             {file.type === 'folder' && (
-                              <div className={`absolute inset-0 bg-indigo-50/50 rounded-lg scale-0 group-hover:scale-110 transition-transform ${draggedFileId && draggedFileId !== file.id ? 'scale-110 bg-indigo-100 ring-2 ring-indigo-400' : ''}`}></div>
+                              <div className={`absolute inset-0 bg-aura-accent/10 rounded-lg scale-0 group-hover:scale-110 transition-transform ${draggedFileId && draggedFileId !== file.id ? 'scale-110 bg-aura-accent/20 ring-2 ring-aura-accent/40' : ''}`}></div>
                             )}
                             <div className="relative z-10 transition-transform group-hover:scale-110">
                               {file.thumbnail ? (
@@ -408,8 +412,8 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
                             </div>
                           </div>
                           <div className="text-center relative z-10">
-                            <p className="font-bold text-gray-700 text-sm truncate w-full">{file.name}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">{file.size || (file.type === 'folder' ? 'Carpeta' : '-')}</p>
+                            <p className="font-bold text-gray-300 text-sm truncate w-full group-hover:text-aura-white transition-colors">{file.name}</p>
+                            <p className="text-[10px] text-gray-500 mt-0.5">{file.size || (file.type === 'folder' ? 'Carpeta' : '-')}</p>
                           </div>
                         </>
                       )}
@@ -417,23 +421,27 @@ const GalleryView: React.FC<GalleryViewProps> = ({ files, setFiles }) => {
                       {/* List View Content */}
                       {viewMode === 'list' && (
                         <>
-                          <div className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-lg shrink-0">
+                          <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-lg shrink-0">
                             {file.thumbnail ? (
                               <img src={file.thumbnail} className="w-full h-full object-cover rounded-md" alt="thumbnail" />
                             ) : getIcon(file.type)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 truncate">{file.name}</p>
+                            <p className="font-medium text-gray-300 truncate group-hover:text-aura-white">{file.name}</p>
                           </div>
-                          <div className="text-xs text-gray-400 w-24 text-right">
+                          <div className="text-xs text-gray-500 w-24 text-right">
                             {file.size || '-'}
                           </div>
                         </>
                       )}
 
                       {/* Context Menu Trigger (Mock) */}
-                      <button className="absolute top-2 right-2 p-1 text-gray-300 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreVertical size={16} />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); if (onDeleteFile) onDeleteFile(file.id); }}
+                        className="absolute top-2 right-2 p-1 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Eliminar"
+                      >
+                        <RefreshCw className="rotate-45" size={16} />{/* Using Refresh as X for now or just generic */}
                       </button>
                     </div>
                   ))}

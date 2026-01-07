@@ -823,35 +823,35 @@ Usuario: ${userName}
 
   return (
     <div className={`
-      fixed z-[70] flex flex-col animate-fade-in-up bg-white shadow-2xl border-gray-200 overflow-hidden
+      fixed z-[70] flex flex-col animate-fade-in-up bg-aura-black shadow-2xl border-aura-gray/30 overflow-hidden
       inset-0 md:inset-auto md:right-4 md:top-20 md:bottom-24 md:w-96 md:h-auto md:rounded-2xl md:border
     `}>
       {/* Header */}
-      <div className={`p-4 text-white flex items-center justify-between transition-colors duration-500 ${statusState !== 'idle' ? 'bg-indigo-600' : 'bg-gradient-to-r from-indigo-600 to-purple-600'}`}>
+      <div className={`p-4 text-white flex items-center justify-between transition-colors duration-500 ${statusState !== 'idle' ? 'bg-aura-accent text-aura-black' : 'bg-aura-gray border-b border-aura-gray-light/30'}`}>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <img src={AURA_IMAGE} className="w-10 h-10 rounded-full border-2 border-white/30 object-cover" alt="Aura" />
+            <img src={AURA_IMAGE} className="w-10 h-10 rounded-full border-2 border-white/10 object-cover" alt="Aura" />
             {statusState !== 'idle' && (
-              <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full border border-indigo-500 flex items-center justify-center w-5 h-5">
-                {statusState === 'listening' && <Mic size={12} className="text-indigo-600 animate-pulse" />}
-                {statusState === 'speaking' && <Volume2 size={12} className="text-indigo-600 animate-bounce" />}
-                {statusState === 'processing' && <BrainCircuit size={12} className="text-indigo-600 animate-spin" />}
+              <div className="absolute -bottom-1 -right-1 p-1 bg-aura-black rounded-full border border-aura-accent flex items-center justify-center w-5 h-5">
+                {statusState === 'listening' && <Mic size={12} className="text-aura-accent animate-pulse" />}
+                {statusState === 'speaking' && <Volume2 size={12} className="text-aura-accent animate-bounce" />}
+                {statusState === 'processing' && <BrainCircuit size={12} className="text-aura-accent animate-spin" />}
               </div>
             )}
           </div>
           <div>
-            <h3 className="font-bold text-sm">
+            <h3 className={`font-bold text-sm ${statusState !== 'idle' ? 'text-aura-black' : 'text-aura-white'}`}>
               {statusState === 'idle' && 'Aura AI'}
               {statusState === 'listening' && 'Escuchando...'}
               {statusState === 'processing' && 'Pensando...'}
               {statusState === 'speaking' && 'Aura Hablando'}
             </h3>
-            <p className="text-xs text-indigo-100 opacity-80">
+            <p className={`text-xs opacity-80 ${statusState !== 'idle' ? 'text-aura-black' : 'text-gray-400'}`}>
               {statusState === 'idle' ? 'Siempre disponible' : 'Modo voz activo'}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className={`flex items-center gap-1 ${statusState !== 'idle' ? 'text-aura-black' : 'text-gray-400'}`}>
           {/* History Button */}
           <button onClick={() => setShowHistory(!showHistory)} className="p-1 hover:bg-white/20 rounded transition-colors" title="Historial">
             <History size={18} />
@@ -865,15 +865,15 @@ Usuario: ${userName}
 
       {/* History Panel (Overlay) */}
       {showHistory && (
-        <div className="absolute inset-x-0 top-16 bottom-0 bg-white z-10 p-4 border-b overflow-y-auto animate-fade-in">
+        <div className="absolute inset-x-0 top-16 bottom-0 bg-aura-black z-10 p-4 border-b border-aura-gray/30 overflow-y-auto animate-fade-in">
           <div className="flex justify-between items-center mb-4">
-            <h4 className="font-bold text-gray-800">Historial de Chat</h4>
+            <h4 className="font-bold text-aura-white">Historial de Chat</h4>
             <button
               onClick={() => {
                 if (onCreateSession) onCreateSession();
                 setShowHistory(false);
               }}
-              className="flex items-center gap-1 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200"
+              className="flex items-center gap-1 text-xs bg-aura-gray text-aura-white border border-white/10 px-2 py-1 rounded hover:bg-aura-gray-light"
             >
               <Plus size={12} /> Nuevo Chat
             </button>
@@ -882,21 +882,21 @@ Usuario: ${userName}
             {chatSessions && chatSessions.length > 0 ? chatSessions.map(session => (
               <div
                 key={session.id}
-                className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 flex justify-between items-center ${activeChatId === session.id ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-100'}`}
+                className={`p-3 rounded-lg border cursor-pointer hover:bg-aura-gray/30 flex justify-between items-center ${activeChatId === session.id ? 'border-aura-accent/50 bg-aura-gray/50' : 'border-white/5'}`}
                 onClick={() => {
                   if (onSelectSession) onSelectSession(session.id);
                   setShowHistory(false);
                 }}
               >
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <MessageSquare size={16} className="text-gray-400 shrink-0" />
+                  <MessageSquare size={16} className="text-gray-500 shrink-0" />
                   <div className="truncate">
-                    <p className="text-sm font-medium text-gray-700 truncate">{session.title}</p>
-                    <p className="text-xs text-gray-400">{new Date(session.lastActive).toLocaleDateString()} {new Date(session.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="text-sm font-medium text-aura-white truncate">{session.title}</p>
+                    <p className="text-xs text-gray-500">{new Date(session.lastActive).toLocaleDateString()} {new Date(session.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>
                 <button
-                  className="p-1.5 text-gray-300 hover:text-red-500"
+                  className="p-1.5 text-gray-500 hover:text-red-400"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onDeleteSession) onDeleteSession(session.id);
@@ -906,25 +906,25 @@ Usuario: ${userName}
                 </button>
               </div>
             )) : (
-              <p className="text-center text-gray-400 text-sm py-4">No hay historial.</p>
+              <p className="text-center text-gray-500 text-sm py-4">No hay historial.</p>
             )}
           </div>
         </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-aura-black scrollbar-thin scrollbar-thumb-aura-gray scrollbar-track-transparent" ref={scrollRef}>
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'aura' && (
-              <img src={AURA_IMAGE} className="w-8 h-8 rounded-full border border-white shadow-sm mr-2 mt-1 object-cover" alt="Aura" />
+              <img src={AURA_IMAGE} className="w-8 h-8 rounded-full border border-white/10 shadow-sm mr-2 mt-1 object-cover" alt="Aura" />
             )}
             <div className="flex flex-col gap-2 max-w-[85%] md:max-w-[80%]">
               {/* Attachments */}
               {msg.attachments && msg.attachments.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {msg.attachments.map(att => (
-                    <div key={att.id} className="rounded-lg overflow-hidden border border-gray-200">
+                    <div key={att.id} className="rounded-lg overflow-hidden border border-white/10">
                       {att.type === 'image' ? (
                         <img
                           src={`data:${att.mimeType};base64,${att.data}`}
@@ -932,9 +932,9 @@ Usuario: ${userName}
                           className="max-w-[200px] max-h-[200px] object-cover"
                         />
                       ) : (
-                        <div className="bg-white p-2 flex items-center gap-2 min-w-[150px]">
-                          <File size={16} className="text-gray-600" />
-                          <span className="text-xs truncate">{att.name}</span>
+                        <div className="bg-aura-gray p-2 flex items-center gap-2 min-w-[150px]">
+                          <File size={16} className="text-gray-400" />
+                          <span className="text-xs truncate text-gray-300">{att.name}</span>
                         </div>
                       )}
                     </div>
@@ -944,8 +944,8 @@ Usuario: ${userName}
               {/* Text Message */}
               <div
                 className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-line ${msg.role === 'user'
-                  ? 'bg-indigo-600 text-white rounded-br-none'
-                  : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
+                  ? 'bg-aura-white text-aura-black rounded-br-none font-medium'
+                  : 'bg-aura-gray/40 text-gray-200 rounded-bl-none border border-white/5'
                   }`}
               >
                 {msg.text}
@@ -955,8 +955,8 @@ Usuario: ${userName}
         ))}
         {isTyping && (
           <div className="flex justify-start">
-            <img src={AURA_IMAGE} className="w-8 h-8 rounded-full border border-white shadow-sm mr-2 mt-1 object-cover" alt="Aura" />
-            <div className="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-1">
+            <img src={AURA_IMAGE} className="w-8 h-8 rounded-full border border-white/10 shadow-sm mr-2 mt-1 object-cover" alt="Aura" />
+            <div className="bg-aura-gray/40 border border-white/5 px-4 py-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-1">
               <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
               <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
               <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -966,23 +966,23 @@ Usuario: ${userName}
       </div>
 
       {/* Input */}
-      <div className="p-3 bg-white border-t border-gray-100 pb-safe">
+      <div className="p-3 bg-aura-black border-t border-aura-gray/30 pb-safe">
         {/* Attachment Preview */}
         {attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {attachments.map(att => (
-              <div key={att.id} className="relative group bg-gray-100 rounded-lg p-2 flex items-center gap-2 max-w-[200px]">
+              <div key={att.id} className="relative group bg-aura-gray rounded-lg p-2 flex items-center gap-2 max-w-[200px] border border-white/10">
                 {att.type === 'image' ? (
-                  <ImageIcon size={16} className="text-indigo-600" />
+                  <ImageIcon size={16} className="text-aura-accent" />
                 ) : (
-                  <File size={16} className="text-gray-600" />
+                  <File size={16} className="text-gray-400" />
                 )}
-                <span className="text-xs truncate flex-1">{att.name}</span>
+                <span className="text-xs truncate flex-1 text-gray-300">{att.name}</span>
                 <button
                   onClick={() => removeAttachment(att.id)}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-100 rounded transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded transition-opacity"
                 >
-                  <X size={14} className="text-red-600" />
+                  <X size={14} className="text-red-400" />
                 </button>
               </div>
             ))}
@@ -1000,12 +1000,12 @@ Usuario: ${userName}
         />
 
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 bg-gray-50 px-3 py-3 md:py-2 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-100 transition-all">
+          <div className="flex-1 flex items-center gap-2 bg-aura-gray/30 px-3 py-3 md:py-2 rounded-xl border border-white/5 focus-within:border-aura-gray-light focus-within:ring-1 focus-within:ring-aura-gray-light/50 transition-all">
             {/* Attachment Button */}
             <button
               onClick={handleFileSelect}
               disabled={statusState !== 'idle' || uploadingFile}
-              className="p-1 text-gray-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
+              className="p-1 text-gray-500 hover:text-aura-accent disabled:opacity-50 transition-colors"
               title="Adjuntar archivo"
             >
               <Paperclip size={18} />
@@ -1018,12 +1018,12 @@ Usuario: ${userName}
               onPaste={handlePaste}
               placeholder={uploadingFile ? "Procesando archivo..." : (statusState !== 'idle' ? "Habla con Aura..." : "Escribe algo...")}
               disabled={statusState !== 'idle' || uploadingFile}
-              className="flex-1 bg-transparent text-base md:text-sm border-none focus:ring-0 placeholder:text-gray-400 disabled:opacity-50"
+              className="flex-1 bg-transparent text-base md:text-sm border-none focus:ring-0 placeholder:text-gray-600 text-aura-white disabled:opacity-50"
             />
             <button
               onClick={handleSend}
               disabled={(!input.trim() && attachments.length === 0) || statusState !== 'idle' || uploadingFile}
-              className="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="p-1.5 bg-aura-white text-aura-black rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
             >
               <Send size={16} />
             </button>
@@ -1032,8 +1032,8 @@ Usuario: ${userName}
           <button
             onClick={toggleLive}
             className={`p-3 rounded-xl transition-all duration-300 shadow-sm ${statusState !== 'idle'
-              ? 'bg-red-500 text-white animate-pulse-slow ring-4 ring-red-100'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-red-500 text-white animate-pulse-slow ring-4 ring-red-900/30'
+              : 'bg-aura-gray/30 text-gray-400 hover:bg-aura-gray/50 hover:text-aura-white'
               }`}
           >
             {statusState !== 'idle' ? <MicOff size={22} /> : <Mic size={22} />}

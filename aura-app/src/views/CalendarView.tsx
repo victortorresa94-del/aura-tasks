@@ -37,15 +37,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask }) => {
     if (!newEventTitle.trim() || !selectedDay || !onAddTask) return;
 
     const newTask: Task = {
-        id: Date.now().toString(),
-        title: newEventTitle,
-        priority: 'media',
-        date: selectedDay,
-        status: 'pendiente',
-        type: isEventMode ? 'event' : 'normal',
-        listId: '1',
-        tags: isEventMode ? ['evento'] : [],
-        eventDate: isEventMode ? selectedDay : undefined
+      id: Date.now().toString(),
+      title: newEventTitle,
+      priority: 'media',
+      date: selectedDay,
+      status: 'pendiente',
+      type: isEventMode ? 'event' : 'normal',
+      listId: '1',
+      tags: isEventMode ? ['evento'] : [],
+      eventDate: isEventMode ? selectedDay : undefined,
+      ownerId: '', // Will be set by repository
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     };
     onAddTask(newTask);
     setSelectedDay(null);
@@ -59,7 +62,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask }) => {
 
     // Placeholders
     for (let i = 0; i < adjustedStartDay; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-[80px] sm:min-h-[120px] bg-gray-50/30 border border-gray-100/50"></div>);
+      days.push(<div key={`empty-${i}`} className="min-h-[80px] sm:min-h-[120px] bg-aura-black/50 border border-white/5"></div>);
     }
 
     // Days
@@ -69,29 +72,29 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask }) => {
       const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
       days.push(
-        <div 
-            key={i} 
-            onClick={() => handleDayClick(i)}
-            className={`min-h-[80px] sm:min-h-[120px] border border-gray-100 bg-white p-1 sm:p-2 overflow-hidden hover:bg-gray-50 transition-colors relative group cursor-pointer ${isToday ? 'bg-indigo-50/30' : ''}`}
+        <div
+          key={i}
+          onClick={() => handleDayClick(i)}
+          className={`min-h-[80px] sm:min-h-[120px] border border-white/5 bg-aura-black p-1 sm:p-2 overflow-hidden hover:bg-white/5 transition-colors relative group cursor-pointer ${isToday ? 'bg-aura-accent/10' : ''}`}
         >
           <div className="flex justify-center sm:justify-between items-center mb-1">
-             <span className={`text-xs sm:text-sm font-medium w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-700'}`}>
-               {i}
-             </span>
-             <button className="hidden sm:block opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 hover:text-indigo-600 transition-all">
-                <Plus size={14} />
-             </button>
+            <span className={`text-xs sm:text-sm font-medium w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-aura-accent text-aura-black shadow-md' : 'text-gray-400'}`}>
+              {i}
+            </span>
+            <button className="hidden sm:block opacity-0 group-hover:opacity-100 p-0.5 text-gray-500 hover:text-aura-accent transition-all">
+              <Plus size={14} />
+            </button>
           </div>
           <div className="space-y-1 overflow-y-auto max-h-[50px] sm:max-h-[calc(100%-24px)] custom-scrollbar">
             {dayTasks.map(task => (
-              <div 
-                key={task.id} 
+              <div
+                key={task.id}
                 className={`text-[8px] sm:text-xs truncate px-1 py-0.5 sm:py-1 rounded border-l-2 shadow-sm
-                  ${task.type === 'event' 
-                    ? 'bg-purple-100 text-purple-800 border-purple-500 font-bold' 
-                    : task.status === 'completada' 
-                      ? 'bg-gray-100 text-gray-400 border-gray-300 line-through hidden sm:block' 
-                      : 'bg-indigo-50 text-indigo-700 border-indigo-400'}
+                  ${task.type === 'event'
+                    ? 'bg-purple-900/30 text-purple-200 border-purple-500 font-bold'
+                    : task.status === 'completada'
+                      ? 'bg-white/5 text-gray-500 border-gray-600 line-through hidden sm:block'
+                      : 'bg-aura-gray/50 text-aura-white border-aura-accent'}
                 `}
                 title={task.title}
               >
@@ -111,16 +114,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask }) => {
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-           <h2 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-             <CalIcon className="text-indigo-600" size={20} />
-             {monthNames[currentDate.getMonth()]} <span className="text-gray-400 font-light">{currentDate.getFullYear()}</span>
-           </h2>
+          <h2 className="text-lg sm:text-2xl font-bold text-aura-white flex items-center gap-2">
+            <CalIcon className="text-aura-accent" size={20} />
+            {monthNames[currentDate.getMonth()]} <span className="text-gray-500 font-light">{currentDate.getFullYear()}</span>
+          </h2>
         </div>
         <div className="flex gap-1 sm:gap-2">
-          <button onClick={prevMonth} className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg border border-gray-200 text-gray-600">
+          <button onClick={prevMonth} className="p-1.5 sm:p-2 hover:bg-white/5 rounded-lg border border-white/10 text-gray-400 hover:text-white">
             <ChevronLeft size={18} />
           </button>
-          <button onClick={nextMonth} className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg border border-gray-200 text-gray-600">
+          <button onClick={nextMonth} className="p-1.5 sm:p-2 hover:bg-white/5 rounded-lg border border-white/10 text-gray-400 hover:text-white">
             <ChevronRight size={18} />
           </button>
         </div>
@@ -129,57 +132,57 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask }) => {
       {/* Grid Header */}
       <div className="grid grid-cols-7 gap-px mb-1 sm:mb-2">
         {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(day => (
-          <div key={day} className="text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider py-2">
+          <div key={day} className="text-center text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider py-2">
             {day}
           </div>
         ))}
       </div>
 
       {/* Days Grid */}
-      <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden shadow-sm flex-1">
+      <div className="grid grid-cols-7 gap-px bg-aura-gray/20 border border-white/5 rounded-xl overflow-hidden shadow-sm flex-1">
         {renderDays()}
       </div>
 
       {/* Add Item Modal */}
       {selectedDay && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm" onClick={() => setSelectedDay(null)}>
-           <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in-up scale-100" onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-bold text-gray-900">Añadir el {new Date(selectedDay).toLocaleDateString()}</h3>
-                 <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
-              </div>
-              
-              <input 
-                autoFocus
-                type="text"
-                placeholder="Título..."
-                value={newEventTitle}
-                onChange={(e) => setNewEventTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddItem();
-                  if (e.key === 'Escape') setSelectedDay(null);
-                }}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedDay(null)}>
+          <div className="bg-aura-black p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in-up scale-100 border border-white/10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-aura-white">Añadir el {new Date(selectedDay).toLocaleDateString()}</h3>
+              <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+            </div>
 
-              <div className="flex items-center justify-between mb-6">
-                 <span className="text-sm text-gray-600 font-medium">¿Es un evento?</span>
-                 <button 
-                   onClick={() => setIsEventMode(!isEventMode)}
-                   className={`w-12 h-7 rounded-full transition-colors relative ${isEventMode ? 'bg-purple-500' : 'bg-gray-200'}`}
-                 >
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform shadow-sm ${isEventMode ? 'left-6' : 'left-1'}`}></div>
-                 </button>
-              </div>
+            <input
+              autoFocus
+              type="text"
+              placeholder="Título..."
+              value={newEventTitle}
+              onChange={(e) => setNewEventTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddItem();
+                if (e.key === 'Escape') setSelectedDay(null);
+              }}
+              className="w-full bg-aura-gray/20 border border-white/10 rounded-xl px-4 py-3 mb-4 focus:ring-1 focus:ring-aura-accent outline-none text-aura-white placeholder:text-gray-600"
+            />
 
-              <button 
-                onClick={handleAddItem}
-                disabled={!newEventTitle.trim()}
-                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-sm text-gray-400 font-medium">¿Es un evento?</span>
+              <button
+                onClick={() => setIsEventMode(!isEventMode)}
+                className={`w-12 h-7 rounded-full transition-colors relative ${isEventMode ? 'bg-purple-600' : 'bg-white/10'}`}
               >
-                Crear {isEventMode ? 'Evento' : 'Tarea'}
+                <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform shadow-sm ${isEventMode ? 'left-6' : 'left-1'}`}></div>
               </button>
-           </div>
+            </div>
+
+            <button
+              onClick={handleAddItem}
+              disabled={!newEventTitle.trim()}
+              className="w-full py-3 bg-aura-accent text-aura-black rounded-xl font-bold hover:bg-white disabled:opacity-50 transition-colors"
+            >
+              Crear {isEventMode ? 'Evento' : 'Tarea'}
+            </button>
+          </div>
         </div>
       )}
     </div>

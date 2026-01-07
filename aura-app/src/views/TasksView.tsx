@@ -248,9 +248,9 @@ const TasksView: React.FC<TasksViewProps> = ({
       const projectFilters = effectiveFilters.projectIds || [];
 
       return (
-         <div className="relative z-30 flex flex-col xl:flex-row xl:items-center gap-4 mb-6 bg-white p-3 rounded-xl border border-gray-100 shadow-sm animate-fade-in-up">
+         <div className="relative z-30 flex flex-col xl:flex-row xl:items-center gap-4 mb-6 bg-aura-black p-3 rounded-xl border border-white/5 shadow-sm animate-fade-in-up">
             {/* Layout Switcher */}
-            <div className="flex bg-gray-100 rounded-lg p-1 shrink-0">
+            <div className="flex bg-aura-gray/50 rounded-lg p-1 shrink-0 border border-white/5">
                {[
                   { id: 'list', icon: <List size={16} />, label: 'Lista' },
                   { id: 'compact', icon: <AlignJustify size={16} />, label: 'Compacta' },
@@ -260,7 +260,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                   <button
                      key={opt.id}
                      onClick={() => handleUpdateConfig('layout', opt.id)}
-                     className={`p-2 rounded-md transition-all flex items-center gap-2 ${effectiveLayout === opt.id ? 'bg-white shadow text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                     className={`p-2 rounded-md transition-all flex items-center gap-2 ${effectiveLayout === opt.id ? 'bg-aura-gray-light text-aura-white shadow-sm border border-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
                      title={opt.label}
                   >
                      {opt.icon}
@@ -269,22 +269,22 @@ const TasksView: React.FC<TasksViewProps> = ({
                ))}
             </div>
 
-            <div className="h-6 w-px bg-gray-200 hidden xl:block"></div>
+            <div className="h-6 w-px bg-white/10 hidden xl:block"></div>
 
             {/* ACTIONS: GROUP, SORT, FILTER */}
             <div className="flex flex-wrap items-center gap-2">
 
                {/* 1. GROUP BY */}
                <div className="relative group shrink-0">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">
-                     <Layers size={14} className="text-gray-400" />
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-aura-gray/30 border border-white/10 rounded-lg text-xs font-medium text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white transition-colors">
+                     <Layers size={14} className="text-gray-500" />
                      <span className="hidden sm:inline">Agrupar:</span>
-                     <span className="text-indigo-600 font-bold capitalize">{effectiveGroupBy === 'none' ? 'Nada' : effectiveGroupBy === 'project' ? 'Proyecto' : effectiveGroupBy === 'priority' ? 'Prioridad' : 'Estado'}</span>
-                     <ChevronDown size={12} className="text-gray-400" />
+                     <span className="text-aura-accent font-bold capitalize">{effectiveGroupBy === 'none' ? 'Nada' : effectiveGroupBy === 'project' ? 'Proyecto' : effectiveGroupBy === 'priority' ? 'Prioridad' : 'Estado'}</span>
+                     <ChevronDown size={12} className="text-gray-500" />
                   </button>
-                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 shadow-xl rounded-lg p-1 w-32 z-20 hidden group-hover:block animate-fade-in-up">
+                  <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-1 w-32 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
                      {['none', 'status', 'priority', 'project'].map(g => (
-                        <button key={g} onClick={() => handleUpdateConfig('groupBy', g)} className="w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 rounded text-gray-700 capitalize">
+                        <button key={g} onClick={() => handleUpdateConfig('groupBy', g)} className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 rounded text-gray-300 hover:text-aura-white capitalize">
                            {g === 'none' ? 'Nada' : g === 'project' ? 'Proyecto' : g === 'priority' ? 'Prioridad' : 'Estado'}
                         </button>
                      ))}
@@ -293,19 +293,19 @@ const TasksView: React.FC<TasksViewProps> = ({
 
                {/* 2. SORT BY */}
                <div className="relative group shrink-0">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">
-                     <ArrowUpDown size={14} className="text-gray-400" />
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-aura-gray/30 border border-white/10 rounded-lg text-xs font-medium text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white transition-colors">
+                     <ArrowUpDown size={14} className="text-gray-500" />
                      <span className="hidden sm:inline">Ordenar:</span>
-                     <span className="text-indigo-600 font-bold capitalize">{effectiveSortBy === 'date' ? 'Fecha' : effectiveSortBy === 'title' ? 'Nombre' : 'Prioridad'}</span>
-                     <ChevronDown size={12} className="text-gray-400" />
+                     <span className="text-aura-accent font-bold capitalize">{effectiveSortBy === 'date' ? 'Fecha' : effectiveSortBy === 'title' ? 'Nombre' : 'Prioridad'}</span>
+                     <ChevronDown size={12} className="text-gray-500" />
                   </button>
-                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 shadow-xl rounded-lg p-1 w-32 z-20 hidden group-hover:block animate-fade-in-up">
+                  <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-1 w-32 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
                      {[
                         { id: 'date', label: 'Fecha' },
                         { id: 'priority', label: 'Prioridad' },
                         { id: 'title', label: 'Nombre' }
                      ].map(s => (
-                        <button key={s.id} onClick={() => handleUpdateConfig('sortBy', s.id)} className="w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 rounded text-gray-700">
+                        <button key={s.id} onClick={() => handleUpdateConfig('sortBy', s.id)} className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 rounded text-gray-300 hover:text-aura-white">
                            {s.label}
                         </button>
                      ))}
@@ -320,18 +320,18 @@ const TasksView: React.FC<TasksViewProps> = ({
 
                   {/* Filter: Status */}
                   <div className="relative group shrink-0">
-                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium hover:bg-gray-50 ${statusFilters.length ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors ${statusFilters.length ? 'bg-aura-accent/10 border-aura-accent/20 text-aura-accent' : 'bg-aura-gray/30 border-white/10 text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white'}`}>
                         Estados
-                        {statusFilters.length ? <span className="bg-indigo-600 text-white px-1 rounded-full text-[9px]">{statusFilters.length}</span> : null}
+                        {statusFilters.length ? <span className="bg-aura-accent text-aura-black px-1 rounded-full text-[9px] font-bold">{statusFilters.length}</span> : null}
                      </button>
-                     <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 shadow-xl rounded-lg p-2 w-40 z-20 hidden group-hover:block animate-fade-in-up">
+                     <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-2 w-40 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
                         {(statuses || []).map(s => (
-                           <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                           <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded cursor-pointer text-gray-300">
                               <input
                                  type="checkbox"
                                  checked={statusFilters.includes(s.id)}
                                  onChange={() => toggleFilter('status', s.id)}
-                                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                 className="rounded border-gray-600 bg-aura-black/50 text-aura-accent focus:ring-aura-accent"
                               />
                               <div className={`w-2 h-2 rounded-full ${s.color}`}></div>
                               <span className="text-xs truncate">{s.name}</span>
@@ -342,18 +342,18 @@ const TasksView: React.FC<TasksViewProps> = ({
 
                   {/* Filter: Priority */}
                   <div className="relative group shrink-0">
-                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium hover:bg-gray-50 ${priorityFilters.length ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors ${priorityFilters.length ? 'bg-aura-accent/10 border-aura-accent/20 text-aura-accent' : 'bg-aura-gray/30 border-white/10 text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white'}`}>
                         Prioridad
-                        {priorityFilters.length ? <span className="bg-indigo-600 text-white px-1 rounded-full text-[9px]">{priorityFilters.length}</span> : null}
+                        {priorityFilters.length ? <span className="bg-aura-accent text-aura-black px-1 rounded-full text-[9px] font-bold">{priorityFilters.length}</span> : null}
                      </button>
-                     <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 shadow-xl rounded-lg p-2 w-40 z-20 hidden group-hover:block animate-fade-in-up">
+                     <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-2 w-40 z-20 hidden group-hover:block animate-fade-in-up backdrop-blur-xl">
                         {['alta', 'media', 'baja'].map(p => (
-                           <label key={p} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                           <label key={p} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded cursor-pointer text-gray-300">
                               <input
                                  type="checkbox"
                                  checked={priorityFilters.includes(p as Priority)}
                                  onChange={() => toggleFilter('priority', p)}
-                                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                 className="rounded border-gray-600 bg-aura-black/50 text-aura-accent focus:ring-aura-accent"
                               />
                               <span className="text-xs capitalize">{p}</span>
                            </label>
@@ -363,18 +363,18 @@ const TasksView: React.FC<TasksViewProps> = ({
 
                   {/* Filter: Projects */}
                   <div className="relative group shrink-0">
-                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium hover:bg-gray-50 ${projectFilters.length ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+                     <button className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors ${projectFilters.length ? 'bg-aura-accent/10 border-aura-accent/20 text-aura-accent' : 'bg-aura-gray/30 border-white/10 text-gray-300 hover:bg-aura-gray/50 hover:text-aura-white'}`}>
                         Proyectos
-                        {projectFilters.length ? <span className="bg-indigo-600 text-white px-1 rounded-full text-[9px]">{projectFilters.length}</span> : null}
+                        {projectFilters.length ? <span className="bg-aura-accent text-aura-black px-1 rounded-full text-[9px] font-bold">{projectFilters.length}</span> : null}
                      </button>
-                     <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 shadow-xl rounded-lg p-2 w-48 z-20 hidden group-hover:block animate-fade-in-up max-h-48 overflow-y-auto">
+                     <div className="absolute top-full left-0 mt-1 bg-aura-gray border border-white/10 shadow-xl rounded-lg p-2 w-48 z-20 hidden group-hover:block animate-fade-in-up max-h-48 overflow-y-auto custom-scrollbar backdrop-blur-xl">
                         {(projects || []).map(p => (
-                           <label key={p.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                           <label key={p.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded cursor-pointer text-gray-300">
                               <input
                                  type="checkbox"
                                  checked={projectFilters.includes(p.id)}
                                  onChange={() => toggleFilter('projectIds', p.id)}
-                                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                 className="rounded border-gray-600 bg-aura-black/50 text-aura-accent focus:ring-aura-accent"
                               />
                               <span className="text-xs truncate">{p.icon} {p.name}</span>
                            </label>
@@ -431,23 +431,24 @@ const TasksView: React.FC<TasksViewProps> = ({
          <div
             key={task.id}
             onClick={() => onSelectTask(task)}
-            className="bg-white border border-gray-100 hover:border-indigo-300 hover:shadow-md rounded-xl p-3 flex flex-col gap-2 cursor-pointer transition-all active:scale-95 h-28 justify-between relative group"
+            className="bg-aura-gray/30 border border-white/5 hover:border-aura-accent/30 hover:shadow-lg hover:shadow-aura-accent/5 rounded-xl p-3 flex flex-col gap-2 cursor-pointer transition-all active:scale-95 h-28 justify-between relative group overflow-hidden"
          >
-            <div className="flex justify-between items-start">
-               <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+            <div className="flex justify-between items-start z-10">
+               <div className="w-8 h-8 rounded-lg bg-white/5 text-aura-white flex items-center justify-center text-lg border border-white/5">
                   {getIcon()}
                </div>
-               <div className={`w-2 h-2 rounded-full ${statusObj?.color || 'bg-gray-300'}`}></div>
+               <div className={`w-2 h-2 rounded-full ${statusObj?.color || 'bg-gray-500'}`}></div>
             </div>
 
-            <div>
-               <h4 className="font-bold text-gray-800 text-xs line-clamp-2 leading-tight">{task.title}</h4>
+            <div className="z-10">
+               <h4 className="font-bold text-aura-white text-xs line-clamp-2 leading-tight group-hover:text-aura-accent transition-colors">{task.title}</h4>
                <p className="text-[10px] text-gray-400 mt-1 truncate">
                   {project ? project.name : 'Sin proyecto'}
                </p>
             </div>
 
             <div className={`absolute bottom-3 right-3 w-1.5 h-1.5 rounded-full ${task.priority === 'alta' ? 'bg-red-500' : task.priority === 'media' ? 'bg-amber-400' : 'bg-emerald-400'}`}></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
          </div>
       );
    };
@@ -473,11 +474,11 @@ const TasksView: React.FC<TasksViewProps> = ({
 
             {/* Search if not custom view or always? */}
             {!customViewData && (
-               <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-100 shadow-sm shrink-0">
-                  <Search size={18} className="text-gray-400" />
+               <div className="flex items-center gap-2 bg-aura-black px-4 py-2 rounded-xl border border-white/10 shadow-sm shrink-0 focus-within:border-aura-accent/50 focus-within:ring-1 focus-within:ring-aura-accent/20 transition-all">
+                  <Search size={18} className="text-gray-500" />
                   <input
                      type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-                     placeholder="Buscar tarea..." className="flex-1 bg-transparent border-none focus:ring-0 text-sm"
+                     placeholder="Buscar tarea..." className="flex-1 bg-transparent border-none focus:ring-0 text-sm placeholder:text-gray-600 text-aura-white"
                   />
                </div>
             )}
@@ -537,7 +538,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                         {/* Group Header */}
                         {(effectiveGroupBy !== 'none' || effectiveLayout === 'kanban') && (
                            <div
-                              className={`flex items-center justify-between mb-4 px-4 py-3 rounded-xl border-l-4 ${groupBgColor} ${effectiveLayout === 'list' || effectiveLayout === 'compact' ? 'shadow-sm' : ''}`}
+                              className={`flex items-center justify-between mb-4 px-4 py-3 rounded-xl border-l-4 bg-aura-gray/20 border-white/5 ${effectiveLayout === 'list' || effectiveLayout === 'compact' ? '' : ''}`}
                               style={{ borderLeftColor: groupColor }}
                            >
                               <div className="flex items-center gap-3">
@@ -546,7 +547,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                                     className="w-3 h-3 rounded-full shadow-sm"
                                     style={{ backgroundColor: groupColor }}
                                  ></div>
-                                 <span className={`text-base font-bold ${groupTextColor} capitalize`}>
+                                 <span className={`text-base font-bold text-aura-white capitalize`}>
                                     {groupLabel}
                                  </span>
                               </div>
@@ -568,7 +569,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                               {tasksInGroup.map(renderGridCard)}
                            </div>
                         ) : (
-                           <div className={`space-y-3 ${effectiveLayout === 'kanban' ? 'bg-gray-50/50 p-2 rounded-xl h-full min-h-[500px] overflow-y-auto custom-scrollbar' : ''}`}>
+                           <div className={`space-y-3 ${effectiveLayout === 'kanban' ? 'bg-aura-gray/10 p-2 rounded-xl h-full min-h-[500px] overflow-y-auto custom-scrollbar border border-white/5' : ''}`}>
                               {tasksInGroup.map(renderTask)}
 
                               {/* Dropzone visual hint if empty */}

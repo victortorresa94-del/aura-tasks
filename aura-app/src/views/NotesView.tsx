@@ -11,12 +11,14 @@ import LinkManager from '../components/LinkManager';
 
 interface NotesViewProps {
   notes: Note[];
-  setNotes: React.Dispatch<React.SetStateAction<Note[]>>;
   initialSelectedNoteId?: string | null;
   tasks: Task[];
   contacts: Contact[];
   files: FileItem[];
   showToast?: (msg: string) => void;
+  onCreateNote: (note: Note) => void;
+  onUpdateNote: (id: string, updates: Partial<Note>) => void;
+  onDeleteNote: (id: string) => void;
 }
 
 const DEFAULT_COVER = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1000&q=80";
@@ -46,13 +48,13 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
         onClick={() => onSelect(note.id)}
         className={`
           group flex items-center gap-2 py-2 px-3 mx-2 rounded-lg cursor-pointer transition-all duration-200 text-sm mb-0.5
-          ${isSelected ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm' : 'hover:bg-gray-100 text-gray-600'}
+          ${isSelected ? 'bg-aura-accent/10 text-aura-accent font-semibold shadow-sm border border-aura-accent/20' : 'hover:bg-white/5 text-gray-400'}
         `}
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
       >
         <div
           onClick={(e) => { e.stopPropagation(); hasChildren ? onToggleExpand(e, note) : null; }}
-          className={`p-0.5 rounded hover:bg-gray-300/50 text-gray-400 transition-opacity ${hasChildren ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}
+          className={`p-0.5 rounded hover:bg-white/10 text-gray-500 transition-opacity ${hasChildren ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}
         >
           {note.expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </div>
@@ -60,10 +62,10 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
         <span className="truncate flex-1">{note.title || 'Sin título'}</span>
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-          <button onClick={(e) => { e.stopPropagation(); onCreateNote(note.id); }} className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-700" title="Nueva sub-página">
+          <button onClick={(e) => { e.stopPropagation(); onCreateNote(note.id); }} className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-aura-white" title="Nueva sub-página">
             <Plus size={14} />
           </button>
-          <button onClick={(e) => onDeleteNote(e, note.id)} className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-red-500" title="Eliminar">
+          <button onClick={(e) => onDeleteNote(e, note.id)} className="p-1 hover:bg-red-500/10 rounded text-gray-500 hover:text-red-400" title="Eliminar">
             <Trash2 size={14} />
           </button>
         </div>
@@ -86,7 +88,7 @@ const NoteTreeItem: React.FC<NoteTreeItemProps> = ({
 };
 
 // --- MAIN NOTES VIEW ---
-const NotesView: React.FC<NotesViewProps> = ({ notes, setNotes, initialSelectedNoteId, tasks, contacts, files, showToast }) => {
+const NotesView: React.FC<NotesViewProps> = ({ notes, initialSelectedNoteId, tasks, contacts, files, showToast, onCreateNote, onUpdateNote, onDeleteNote }) => {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(initialSelectedNoteId || null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -102,55 +104,55 @@ const NotesView: React.FC<NotesViewProps> = ({ notes, setNotes, initialSelectedN
       content: '',
       blocks: [{ id: Date.now().toString() + 'b', type: 'text', content: '' }],
       updatedAt: Date.now(),
+      createdAt: Date.now(),
+      ownerId: '', // Set by repo
       icon: '📄',
       coverImage: parentId ? undefined : DEFAULT_COVER,
       expanded: true,
       links: []
     };
-    setNotes(prev => [...prev, newNote]);
+    onCreateNote(newNote);
     setSelectedNoteId(newNote.id);
     if (window.innerWidth < 768) {
       // On mobile, implicitly go to editor
     }
-    if (showToast) showToast("Nueva nota creada");
   };
 
   const deleteNote = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm('¿Estás seguro de eliminar esta página y todo su contenido?')) {
-      setNotes(prev => prev.filter(n => n.id !== id && n.parentId !== id));
+      onDeleteNote(id);
       if (selectedNoteId === id) setSelectedNoteId(null);
-      if (showToast) showToast("Nota eliminada");
     }
   };
 
   const toggleExpand = (e: React.MouseEvent, note: Note) => {
     e.stopPropagation();
-    setNotes(prev => prev.map(n => n.id === note.id ? { ...n, expanded: !n.expanded } : n));
+    onUpdateNote(note.id, { expanded: !note.expanded });
   };
 
   const selectedNote = notes.find(n => n.id === selectedNoteId);
 
   return (
-    <div className="flex h-full bg-white relative overflow-hidden">
+    <div className="flex h-full bg-aura-black relative overflow-hidden">
 
       {/* SIDEBAR (List) */}
       <div
         className={`
-          flex-col bg-gray-50/80 border-r border-gray-200 transition-all duration-300 h-full backdrop-blur-sm
+          flex-col bg-aura-black border-r border-white/5 transition-all duration-300 h-full
           ${selectedNoteId ? 'hidden md:flex' : 'flex w-full'} 
           ${sidebarOpen ? 'md:w-[280px]' : 'md:w-0 md:opacity-0 md:overflow-hidden'}
         `}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50 shrink-0">
-          <div className="flex items-center gap-2 text-gray-800 font-bold">
-            <span className="w-6 h-6 bg-indigo-600 text-white rounded-md text-xs flex items-center justify-center shadow-sm">N</span>
+        <div className="p-4 border-b border-white/5 flex items-center justify-between bg-aura-gray/10 shrink-0">
+          <div className="flex items-center gap-2 text-aura-white font-bold">
+            <span className="w-6 h-6 bg-aura-accent text-aura-black rounded-md text-xs flex items-center justify-center shadow-sm">N</span>
             <span>Mis Notas</span>
           </div>
           <button
             onClick={() => createNote(null)}
-            className="flex items-center gap-1.5 px-2 py-1.5 bg-white border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 rounded-lg text-xs font-bold text-gray-600 transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-2 py-1.5 bg-white/5 border border-white/10 hover:border-aura-accent/30 hover:text-aura-accent rounded-lg text-xs font-bold text-gray-400 transition-all shadow-sm"
           >
             <Plus size={14} /> Nueva
           </button>
@@ -173,15 +175,15 @@ const NotesView: React.FC<NotesViewProps> = ({ notes, setNotes, initialSelectedN
 
           {/* Empty State in Sidebar */}
           {notes.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-400 text-center p-6 animate-fade-in-up">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100">
-                <FilePlus size={32} className="text-indigo-200" />
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500 text-center p-6 animate-fade-in-up">
+              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-white/5">
+                <FilePlus size={32} className="text-gray-400" />
               </div>
-              <p className="text-sm font-medium mb-1 text-gray-900">Tu cuaderno está vacío</p>
+              <p className="text-sm font-medium mb-1 text-aura-white">Tu cuaderno está vacío</p>
               <p className="text-xs text-gray-500 mb-4">Empieza a organizar tus ideas hoy.</p>
               <button
                 onClick={() => createNote(null)}
-                className="text-white bg-indigo-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                className="text-aura-black bg-aura-accent px-4 py-2 rounded-xl text-sm font-bold hover:bg-white transition-all shadow-md hover:shadow-lg flex items-center gap-2"
               >
                 <Plus size={16} /> Crear primera nota
               </button>
@@ -193,14 +195,15 @@ const NotesView: React.FC<NotesViewProps> = ({ notes, setNotes, initialSelectedN
       {/* EDITOR AREA */}
       <div
         className={`
-          flex-1 flex flex-col h-full bg-white relative transition-all duration-300
+          flex-1 flex flex-col h-full bg-aura-black relative transition-all duration-300
           ${selectedNoteId ? 'flex z-20 absolute inset-0 md:static' : 'hidden md:flex'}
         `}
       >
         {selectedNote ? (
           <Editor
             note={selectedNote}
-            updateNote={(n) => setNotes(prev => prev.map(old => old.id === n.id ? n : old))}
+            // Use onUpdateNote callback
+            updateNote={(updated) => onUpdateNote(selectedNote.id, updated)}
             tasks={tasks} contacts={contacts} files={files} notes={notes}
             onBack={() => setSelectedNoteId(null)} // Mobile Back
             toggleSidebar={() => setSidebarOpen(!sidebarOpen)} // Desktop Toggle
@@ -208,16 +211,16 @@ const NotesView: React.FC<NotesViewProps> = ({ notes, setNotes, initialSelectedN
             showToast={showToast}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50/30 p-8 text-center animate-fade-in-up">
-            <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-gray-100 transform rotate-3">
-              <Type size={48} className="text-gray-300" />
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 bg-aura-gray/10 p-8 text-center animate-fade-in-up">
+            <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-white/5 transform rotate-3">
+              <Type size={48} className="text-gray-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Selecciona una página</h3>
+            <h3 className="text-xl font-bold text-aura-white mb-2">Selecciona una página</h3>
             <p className="max-w-xs mx-auto mb-8 text-gray-500">Elige una nota del menú lateral para ver su contenido o crea una nueva.</p>
 
             <button
               onClick={() => createNote(null)}
-              className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 hover:border-indigo-400 text-gray-700 hover:text-indigo-600 rounded-xl font-bold transition-all shadow-sm hover:shadow-md"
+              className="flex items-center gap-2 px-6 py-3 bg-aura-gray/20 border border-white/10 hover:border-aura-accent/30 text-gray-400 hover:text-aura-white rounded-xl font-bold transition-all shadow-sm hover:shadow-md"
             >
               <Plus size={20} /> Crear Nueva Nota
             </button>
@@ -278,10 +281,10 @@ const Editor: React.FC<{
   };
 
   return (
-    <div className="flex flex-col h-full relative overflow-hidden bg-white">
+    <div className="flex flex-col h-full relative overflow-hidden bg-aura-black">
 
       {/* EDITOR TOOLBAR */}
-      <div className="h-14 border-b border-gray-100 flex items-center justify-between px-3 md:px-6 sticky top-0 bg-white/90 backdrop-blur-md z-40 shrink-0">
+      <div className="h-14 border-b border-white/5 flex items-center justify-between px-3 md:px-6 sticky top-0 bg-aura-black/90 backdrop-blur-md z-40 shrink-0">
         <div className="flex items-center gap-2">
           {/* Mobile Back Button */}
           <button onClick={onBack} className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
@@ -289,13 +292,13 @@ const Editor: React.FC<{
           </button>
 
           {/* Desktop Sidebar Toggle */}
-          <button onClick={toggleSidebar} className="hidden md:flex p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition-colors" title={isSidebarOpen ? "Pantalla completa" : "Mostrar menú"}>
+          <button onClick={toggleSidebar} className="hidden md:flex p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-aura-white transition-colors" title={isSidebarOpen ? "Pantalla completa" : "Mostrar menú"}>
             {isSidebarOpen ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
           </button>
 
           {/* Breadcrumbs */}
           <div className="flex items-center gap-2 text-sm text-gray-500 overflow-hidden ml-2">
-            <span className="truncate font-medium text-gray-900 max-w-[150px] md:max-w-[300px]">{note.icon} {note.title || 'Sin título'}</span>
+            <span className="truncate font-medium text-aura-white max-w-[150px] md:max-w-[300px]">{note.icon} {note.title || 'Sin título'}</span>
           </div>
         </div>
 
@@ -318,7 +321,7 @@ const Editor: React.FC<{
 
           <button
             onClick={() => setShowRelations(!showRelations)}
-            className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${showRelations ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
+            className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${showRelations ? 'bg-aura-accent/10 text-aura-accent' : 'text-gray-400 hover:bg-white/5'}`}
             title="Ver conexiones"
           >
             <Link size={14} />
@@ -356,14 +359,14 @@ const Editor: React.FC<{
             <div className="relative inline-block group mb-6">
               <button
                 onClick={() => setShowIconPicker(!showIconPicker)}
-                className="text-6xl md:text-7xl shadow-sm rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer select-none bg-white p-2 border border-transparent hover:border-gray-200"
+                className="text-6xl md:text-7xl shadow-sm rounded-2xl hover:bg-white/5 transition-colors cursor-pointer select-none bg-aura-black p-2 border border-transparent hover:border-white/10"
               >
                 {note.icon || '📄'}
               </button>
               {showIconPicker && (
-                <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 p-2 grid grid-cols-5 gap-1 z-50 w-64 animate-fade-in-up">
+                <div className="absolute top-full left-0 mt-2 bg-aura-black rounded-xl shadow-xl border border-white/10 p-2 grid grid-cols-5 gap-1 z-50 w-64 animate-fade-in-up">
                   {['📄', '💡', '🚀', '💻', '🎨', '📅', '✅', '🔥', '❤️', '⭐', '📁', '📊', '📝', '🏠', '✈️'].map(emoji => (
-                    <button key={emoji} onClick={() => { updateNote({ ...note, icon: emoji }); setShowIconPicker(false); }} className="text-xl p-2 hover:bg-gray-100 rounded-lg">
+                    <button key={emoji} onClick={() => { updateNote({ ...note, icon: emoji }); setShowIconPicker(false); }} className="text-xl p-2 hover:bg-white/10 rounded-lg">
                       {emoji}
                     </button>
                   ))}
@@ -376,7 +379,7 @@ const Editor: React.FC<{
               value={note.title}
               onChange={(e) => updateNote({ ...note, title: e.target.value })}
               placeholder="Escribe un título..."
-              className="w-full text-3xl md:text-5xl font-bold text-gray-900 placeholder:text-gray-300 border-none focus:ring-0 bg-transparent p-0 mb-8 leading-tight"
+              className="w-full text-3xl md:text-5xl font-bold text-aura-white placeholder:text-gray-600 border-none focus:ring-0 bg-transparent p-0 mb-8 leading-tight"
             />
 
             {/* Blocks */}
@@ -415,10 +418,10 @@ const Editor: React.FC<{
 
         {/* Relations Sidebar (Right) */}
         {showRelations && (
-          <div className="w-80 border-l border-gray-200 bg-gray-50/50 p-6 overflow-y-auto shadow-xl z-30 absolute right-0 top-0 bottom-0 md:static animate-fade-in-right backdrop-blur-sm">
+          <div className="w-80 border-l border-white/10 bg-aura-black/90 p-6 overflow-y-auto shadow-xl z-30 absolute right-0 top-0 bottom-0 md:static animate-fade-in-right backdrop-blur-sm">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2"><Link size={16} /> Conexiones</h3>
-              <button onClick={() => setShowRelations(false)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><X size={18} /></button>
+              <h3 className="font-bold text-aura-white flex items-center gap-2"><Link size={16} /> Conexiones</h3>
+              <button onClick={() => setShowRelations(false)} className="p-1 hover:bg-white/10 rounded text-gray-500"><X size={18} /></button>
             </div>
 
             <LinkManager
@@ -482,13 +485,13 @@ const Block: React.FC<{
     inputRef.current?.focus();
   };
 
-  const commonClasses = "w-full bg-transparent border-none p-0 focus:ring-0 text-gray-800 resize-none overflow-hidden placeholder:text-gray-300";
+  const commonClasses = "w-full bg-transparent border-none p-0 focus:ring-0 text-aura-white resize-none overflow-hidden placeholder:text-gray-600";
 
   return (
     <div className="group relative pl-6 md:pl-0" onClick={onFocus}>
       {/* Visual Controls (Hover - Desktop) */}
       <div className="absolute left-[-2rem] top-1.5 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 hidden md:flex">
-        <button className="text-gray-300 hover:text-gray-600 cursor-grab p-1 hover:bg-gray-100 rounded" title="Arrastrar (Próximamente)"><GripVertical size={14} /></button>
+        <button className="text-gray-500 hover:text-aura-white cursor-grab p-1 hover:bg-white/5 rounded" title="Arrastrar (Próximamente)"><GripVertical size={14} /></button>
       </div>
 
       {/* Visual Controls (Mobile - Always visible slightly) */}
@@ -555,8 +558,8 @@ const Block: React.FC<{
 
       {/* Slash Menu */}
       {showSlashMenu && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-100 max-h-60 overflow-y-auto animate-fade-in-up">
-          <div className="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Bloques básicos</div>
+        <div className="absolute top-full left-0 z-50 mt-1 w-64 bg-aura-black rounded-lg shadow-xl border border-white/10 max-h-60 overflow-y-auto animate-fade-in-up">
+          <div className="p-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Bloques básicos</div>
           {[
             { id: 'text', label: 'Texto', icon: <Type size={14} />, desc: 'Texto plano' },
             { id: 'h1', label: 'Encabezado 1', icon: <Heading1 size={14} />, desc: 'Título grande' },
@@ -568,13 +571,13 @@ const Block: React.FC<{
             { id: 'callout', label: 'Destacado', icon: <Info size={14} />, desc: 'Resaltar texto' },
             { id: 'image', label: 'Imagen', icon: <ImageIcon size={14} />, desc: 'Subir o URL' },
           ].map(item => (
-            <button key={item.id} onClick={() => selectType(item.id as BlockType)} className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-3 transition-colors group/item">
-              <div className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center bg-white text-gray-500 group-hover/item:text-indigo-600 group-hover/item:border-indigo-200">
+            <button key={item.id} onClick={() => selectType(item.id as BlockType)} className="w-full text-left px-3 py-2 hover:bg-white/5 flex items-center gap-3 transition-colors group/item">
+              <div className="w-8 h-8 rounded border border-white/10 flex items-center justify-center bg-transparent text-gray-400 group-hover/item:text-aura-accent group-hover/item:border-aura-accent/30">
                 {item.icon}
               </div>
               <div>
-                <div className="text-sm font-medium text-gray-800">{item.label}</div>
-                <div className="text-[10px] text-gray-400">{item.desc}</div>
+                <div className="text-sm font-medium text-aura-white">{item.label}</div>
+                <div className="text-[10px] text-gray-500">{item.desc}</div>
               </div>
             </button>
           ))}

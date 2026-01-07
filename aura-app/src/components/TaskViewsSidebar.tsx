@@ -59,16 +59,16 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
 
             {/* Secondary Sidebar */}
             <aside className={`
-        fixed lg:relative inset-y-0 left-0 lg:left-auto z-50 lg:z-auto w-64 bg-white border-r border-gray-100 
+        fixed lg:relative inset-y-0 left-0 lg:left-auto z-50 lg:z-auto w-64 bg-aura-black border-r border-white/5 
         transform transition-transform duration-300 ease-in-out flex flex-col shadow-xl lg:shadow-none
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:hidden'}
       `}>
                 {/* Header */}
-                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Vistas de Tareas</h3>
+                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-aura-gray/10">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vistas de Tareas</h3>
                     <button
                         onClick={onClose}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-1.5 hover:bg-white/5 rounded-lg text-gray-500 hover:text-white transition-colors"
                         title="Contraer"
                     >
                         <ChevronLeft size={18} />
@@ -85,11 +85,11 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
                                 key={item.id}
                                 onClick={() => handleNavigation(item.id)}
                                 className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${currentView === item.id
-                                    ? 'bg-indigo-50 text-indigo-600 font-semibold'
-                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                                    ? 'bg-aura-accent/10 text-aura-accent font-semibold border border-aura-accent/20'
+                                    : 'text-gray-400 hover:bg-white/5 hover:text-aura-white'
                                     }`}
                             >
-                                <span className={`transition-colors ${currentView === item.id ? 'text-indigo-600' : 'text-gray-400'}`}>
+                                <span className={`transition-colors ${currentView === item.id ? 'text-aura-accent' : 'text-gray-500'}`}>
                                     {item.icon}
                                 </span>
                                 <span className="flex-1 text-left">{item.label}</span>
@@ -103,7 +103,7 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Listas Personalizadas</p>
                             <button
                                 onClick={() => setIsCreatingView(!isCreatingView)}
-                                className="p-1 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded"
+                                className="p-1 hover:bg-white/10 text-gray-500 hover:text-aura-accent rounded"
                             >
                                 <Plus size={14} />
                             </button>
@@ -111,11 +111,11 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
 
                         {/* Creator Form */}
                         {isCreatingView && (
-                            <div className="bg-gray-50 rounded-xl p-3 mb-3 border border-indigo-100 animate-fade-in-up">
+                            <div className="bg-aura-gray/20 rounded-xl p-3 mb-3 border border-aura-accent/30 animate-fade-in-up">
                                 <input
                                     autoFocus
                                     placeholder="Nombre..."
-                                    className="w-full text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5 mb-2 focus:ring-1 focus:ring-indigo-500 outline-none"
+                                    className="w-full text-xs bg-aura-black/50 border border-white/10 rounded-lg px-2 py-1.5 mb-2 focus:ring-1 focus:ring-aura-accent outline-none text-aura-white"
                                     value={newViewName}
                                     onChange={e => setNewViewName(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleCreateView()}
@@ -123,14 +123,14 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
                                 <div className="flex gap-2 justify-end">
                                     <button
                                         onClick={() => setIsCreatingView(false)}
-                                        className="text-xs text-gray-500 hover:text-gray-800"
+                                        className="text-xs text-gray-500 hover:text-white"
                                     >
                                         Cancelar
                                     </button>
                                     <button
                                         onClick={handleCreateView}
                                         disabled={!newViewName.trim()}
-                                        className="text-xs bg-indigo-600 text-white px-2 py-1 rounded font-bold hover:bg-indigo-700 disabled:opacity-50"
+                                        className="text-xs bg-aura-accent text-aura-black px-2 py-1 rounded font-bold hover:bg-white disabled:opacity-50"
                                     >
                                         Crear
                                     </button>
@@ -144,24 +144,24 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
                                 <button
                                     onClick={() => handleNavigation(view.id)}
                                     className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${currentView === view.id
-                                        ? 'bg-purple-50 text-purple-700 shadow-sm'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                        ? 'bg-aura-gray/30 text-aura-white border border-white/5 shadow-sm'
+                                        : 'text-gray-400 hover:bg-white/5 hover:text-aura-white'
                                         }`}
                                 >
-                                    <Filter size={16} className={currentView === view.id ? 'text-purple-600' : 'text-gray-400'} />
+                                    <Filter size={16} className={currentView === view.id ? 'text-aura-accent' : 'text-gray-500'} />
                                     <span className="truncate flex-1 text-left">{view.name}</span>
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onDeleteView(view.id); }}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <X size={12} />
                                 </button>
                             </div>
                         ))}
                         {customViews.length === 0 && !isCreatingView && (
-                            <div className="px-3 py-4 text-center border-2 border-dashed border-gray-100 rounded-xl m-2">
-                                <p className="text-[10px] text-gray-400">Crea tu primera vista.</p>
+                            <div className="px-3 py-4 text-center border-2 border-dashed border-white/5 rounded-xl m-2 bg-white/5">
+                                <p className="text-[10px] text-gray-500">Crea tu primera vista.</p>
                             </div>
                         )}
                     </div>

@@ -7,6 +7,7 @@ import DailySummary from './components/DailySummary';
 import SettingsModal from './components/SettingsModal';
 import TaskDetail from './components/TaskDetail';
 import TopTabsBar from './components/TopTabsBar';
+import LoginView from './views/LoginView';
 
 // Views
 import TasksView from './views/TasksView';
@@ -43,10 +44,10 @@ export default function App() {
 
   // Statuses
   const [statuses, setStatuses] = usePersistedState<TaskStatus[]>('statuses', [
-    { id: 'todo', name: 'Por hacer', color: 'bg-gray-400', isCompleted: false },
-    { id: 'in_progress', name: 'En curso', color: 'bg-blue-500', isCompleted: false },
-    { id: 'review', name: 'Revisión', color: 'bg-purple-500', isCompleted: false },
-    { id: 'done', name: 'Completada', color: 'bg-green-500', isCompleted: true }
+    { id: 'todo', name: 'Por hacer', color: 'bg-gray-700', isCompleted: false },
+    { id: 'in_progress', name: 'En curso', color: 'bg-blue-600', isCompleted: false },
+    { id: 'review', name: 'Revisión', color: 'bg-purple-600', isCompleted: false },
+    { id: 'done', name: 'Completada', color: 'bg-green-600', isCompleted: true }
   ], 'aura_statuses');
 
   const { data: tasks, loading: tasksLoading } = useFirestoreCollection(tasksRepo);
@@ -62,46 +63,17 @@ export default function App() {
 
   const handleSelectTab = (tab: Tab) => {
     setActiveTabId(tab.id);
-    // Parse path to navigate
-    // Format: 'section:view_id' or special 'project:id'
     if (tab.type === 'project') {
       setActiveSection('projects');
-      setCurrentView(`project_view_${tab.data.id}`);
-      // We need a way to open the specific project view. 
-      // Current Sidebar implementation opens it if we set currentView to 'project_view_ID'
       const viewId = `project_view_${tab.data.id}`;
-
-      // Ensure the view exists in customViews (or transiently create it?)
-      // For now, let's assuming SideBar handles re-creation/finding if we assume it's there?
-      // Actually, we should trigger the "Open Project" logic.
-      // Replicating logic from renderActiveSection (case 'tasks'):
-      const projectView: CustomView = {
-        id: viewId,
-        name: tab.data.name,
-        icon: '📁',
-        layout: 'list',
-        groupBy: 'status',
-        filters: { projectIds: [tab.data.id] }
-      };
-
-      // Auto-create view if not exists (checked by ID consistency with Tab)
-      const exists = customViews.find(v => v.id === viewId);
-      if (!exists) {
-        customViewsRepo.create(user.id, projectView);
-      }
-
+      // Auto-create view if not exists logic is handled in Sidebar usually, but good to have here
       setCurrentView(viewId);
-
     } else if (tab.type === 'note') {
       setActiveSection('notes');
-      // Potential improvement: open specific note details. For now, just go to section.
-      // If we had a selectedNote state, we could set it here.
     } else if (tab.type === 'contact') {
       setActiveSection('crm');
-      // Similar to notes, could set active contact.
     } else if (tab.type === 'task') {
       setActiveSection('tasks');
-      // Could filter or highlight specific task.
     } else if (tab.type === 'view') {
       const [section, view] = tab.path.split(':');
       if (section) setActiveSection(section);
@@ -118,11 +90,8 @@ export default function App() {
     setTabs(prev => prev.map(t => t.id === id ? { ...t, isPinned: !t.isPinned } : t));
   };
 
-  // Sync Active Tab with Current Navigation (Optional/Advanced)
   useEffect(() => {
-    // Find if current view matches any tab
     const matchingTab = tabs.find(t => {
-      // Simple heuristic matching
       if (t.type === 'view' && t.path === `${activeSection}:${currentView}`) return true;
       return false;
     });
@@ -138,15 +107,10 @@ export default function App() {
 
   const [transactions, setTransactions] = usePersistedState<Transaction[]>('finance', [], 'aura_finance');
   const [habits, setHabits] = usePersistedState<Habit[]>('habits', [], 'aura_habits');
-  // Files persist removed (replaced by filesRepo collection)
-  // const [files, setFiles] = ... removed
-
 
   // --- AUTH INTEGRATION ---
-  const { user: authUser } = useAuth();
+  const { user: authUser, loading: authLoading } = useAuth();
 
-  // We maintain a local 'user' state for app-specific fields (like completedTasks)
-  // but sync basic info from Auth
   const [localUserPreferences, setLocalUserPreferences] = usePersistedState<Partial<User>>('user_prefs', {
     completedTasks: 0
   }, 'aura_user_prefs');
@@ -161,9 +125,7 @@ export default function App() {
   }), [authUser, localUserPreferences]);
 
   const updateUser = (updated: User) => {
-    // Update local prefs
     setLocalUserPreferences(prev => ({ ...prev, ...updated }));
-    // TODO: Update Firebase Profile if name/avatar changed (handled in SettingsModal)
   };
 
   const { data: customViews } = useFirestoreCollection(customViewsRepo);
@@ -190,20 +152,19 @@ export default function App() {
   };
 
   const handleAddTask = async (text: string | Task, eventDate?: string) => {
-    // If passed a full Task object (from Modal or Calendar)
     if (typeof text === 'object') {
       await tasksRepo.create(user.id, text);
       showToast("Tarea creada");
       return;
     }
-
-    // Quick Add from Input
     if (!text.trim()) return;
 
-    // Use NLP to parse title and date
     const parsed = parseCommand(text);
     const newTasks: Task[] = parsed.map((p, i) => ({
       id: (Date.now() + i).toString(),
+      ownerId: user.id,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       title: p.title || text, // Clean title from NLP
       priority: p.priority || 'media',
       date: p.date || new Date().toISOString().split('T')[0], // Date from NLP
@@ -220,7 +181,6 @@ export default function App() {
     setQuickAddText('');
     setIsQuickAdding(false);
 
-    // Feedback
     if (newTasks.length > 0) {
       const t = newTasks[0];
       const dateMsg = t.date === new Date().toISOString().split('T')[0] ? "para hoy" : `para ${new Date(t.date).toLocaleDateString('es-ES', { weekday: 'long' })}`;
@@ -229,9 +189,11 @@ export default function App() {
   };
 
   const openNewTaskModal = () => {
-    // Open the TaskDetail modal with a blank task template
     const newTask: Task = {
       id: Date.now().toString(),
+      ownerId: user.id,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       title: '',
       priority: 'media',
       date: new Date().toISOString().split('T')[0],
@@ -269,13 +231,9 @@ export default function App() {
     switch (activeSection) {
       case 'dashboard':
         return <DashboardView tasks={tasks} notes={notes} />;
+      case 'insights':
+        return <InsightsView tasks={tasks} transactions={transactions} habits={habits} projects={projects} statuses={statuses} />;
       case 'projects':
-        // Check if currentView is a specific project ID (e.g., 'project_view_123' or just ID if we simplified)
-        // Sidebar sets setView(p.id) -> so currentView is '1' or '2'.
-        // handleSelectTab sets currentView(`project_view_${id}`) -> let's standardize on just ID or handle both.
-        // Let's assume ID for simplicity. If Sidebar sets '1', check for '1'.
-
-        // Clean ID from 'project_view_' prefix if present
         const rawProjectId = currentView.replace('project_view_', '');
         const selectedProject = projects.find(p => p.id === rawProjectId);
 
@@ -296,21 +254,29 @@ export default function App() {
             />
           );
         }
-
-        // Default Dashboard
         return (
           <ProjectsView
             projects={projects}
             tasks={tasks}
-            setProjects={(newProjects: any) => { /* Handle projects setter removal, maybe add adapter? */ }}
             onOpenProject={(id) => setCurrentView(id)}
+            onCreateProject={(p) => projectsRepo.create(user.id, p)}
+            onUpdateProject={(id, u) => projectsRepo.update(user.id, id, u)}
+            onDeleteProject={(id) => projectsRepo.delete(user.id, id)}
           />
         );
 
       case 'tasks':
         if (currentView === 'proyectos') {
-          // Redirect legacy access to new section
-          return <ProjectsView projects={projects} tasks={tasks} setProjects={() => { }} onOpenProject={(id) => { setActiveSection('projects'); setCurrentView(id); }} />;
+          return (
+            <ProjectsView
+              projects={projects}
+              tasks={tasks}
+              onOpenProject={(id) => { setActiveSection('projects'); setCurrentView(id); }}
+              onCreateProject={(p) => projectsRepo.create(user.id, p)}
+              onUpdateProject={(id, u) => projectsRepo.update(user.id, id, u)}
+              onDeleteProject={(id) => projectsRepo.delete(user.id, id)}
+            />
+          );
         }
         if (currentView === 'recurrentes') {
           return <RecurringView tasks={tasks} onAddTask={handleAddTask} />;
@@ -318,13 +284,10 @@ export default function App() {
         if (currentView === 'insights') {
           return <InsightsView tasks={tasks} transactions={transactions} habits={habits} projects={projects} statuses={statuses} />;
         }
-
-        // Check if it is a custom view
         const customView = customViews.find(v => v.id === currentView);
-
         return (
           <TasksView
-            tasks={tasks} setTasks={() => { }} // Disabled setTasks prop legacy
+            tasks={tasks} setTasks={() => { }}
             projects={projects} statuses={statuses}
             currentView={currentView}
             customViewData={customView}
@@ -336,9 +299,12 @@ export default function App() {
 
       case 'notes': return (
         <NotesView
-          notes={notes} setNotes={() => { }}
+          notes={notes}
           tasks={tasks} contacts={contacts} files={files}
           showToast={showToast}
+          onCreateNote={(n) => notesRepo.create(user.id, n)}
+          onUpdateNote={(id, u) => notesRepo.update(user.id, id, u)}
+          onDeleteNote={(id) => notesRepo.delete(user.id, id)}
         />
       );
       case 'crm': return (
@@ -349,28 +315,47 @@ export default function App() {
         />
       );
       case 'planning': return <PlanningView tasks={tasks} onAddTask={handleAddTask} transactions={transactions} setTransactions={setTransactions} habits={habits} setHabits={setHabits} />;
-      case 'gallery': return <GalleryView files={files} setFiles={() => { }} />;
+      case 'gallery': return (
+        <GalleryView
+          files={files}
+          onCreateFile={(f) => filesRepo.create(user.id, f)}
+          onUpdateFile={(id, u) => filesRepo.update(user.id, id, u)}
+          onDeleteFile={(id) => filesRepo.delete(user.id, id)}
+        />
+      );
       default: return null;
     }
   };
 
-  // ... (inside return statement) ...
+  if (authLoading) {
+    return (
+      <div className="h-screen w-full bg-aura-black flex items-center justify-center text-aura-white animate-pulse-slow">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-aura-gray animate-spin"></div>
+          <p className="text-gray-400 font-light">Iniciando Aura...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return <LoginView />;
+  }
+
   return (
-    <div className="flex h-screen w-full bg-gray-50 overflow-hidden select-none">
+    <div className="flex h-screen w-full bg-aura-black text-aura-white overflow-hidden select-none">
       <Sidebar
         user={user} currentView={currentView} setView={(v) => { setCurrentView(v); setActiveSection('tasks'); }}
         activeSection={activeSection} setActiveSection={setActiveSection}
         showMenu={showSidebar} setShowMenu={setShowSidebar}
         onOpenAura={() => setShowAura(true)} onOpenSettings={() => setShowSettings(true)}
-        // Custom Views Props
         customViews={customViews}
         projects={projects}
-        onCreateView={(v) => customViewsRepo.create(v, user.id)}
+        onCreateView={(v) => customViewsRepo.create(user.id, v)}
         onDeleteView={(id) => {
-          customViewsRepo.delete(id, user.id);
+          customViewsRepo.delete(user.id, id);
           if (currentView === id) setCurrentView('hoy');
         }}
-        // Tabs Support
         onAddTab={(label, type, data, path) => {
           const newTab: Tab = {
             id: Date.now().toString(),
@@ -382,24 +367,22 @@ export default function App() {
         setShowTaskViewsSidebar={setShowTaskViewsSidebar}
       />
 
-      {/* Secondary Sidebar for Task Views */}
       <TaskViewsSidebar
         isOpen={showTaskViewsSidebar}
         onClose={() => setShowTaskViewsSidebar(false)}
         currentView={currentView}
         setView={setCurrentView}
         customViews={customViews}
-        onCreateView={(v) => customViewsRepo.create(v, user.id)}
+        onCreateView={(v) => customViewsRepo.create(user.id, v)}
         onDeleteView={(id) => {
-          customViewsRepo.delete(id, user.id);
+          customViewsRepo.delete(user.id, id);
           if (currentView === id) setCurrentView('hoy');
         }}
       />
 
-      <main className="flex-1 flex flex-col h-full relative overflow-hidden pb-16 md:pb-0">
+      <main className="flex-1 flex flex-col h-full relative overflow-hidden pb-16 md:pb-0 bg-aura-black">
 
-        {/* TOP TABS BAR */}
-        <div className="bg-gray-100/50 pt-2 px-2">
+        <div className="bg-aura-black/50 pt-2 px-2 border-b border-aura-gray/30">
           <TopTabsBar
             tabs={tabs}
             activeTabId={activeTabId}
@@ -409,11 +392,10 @@ export default function App() {
           />
         </div>
 
-        <header className="h-14 lg:h-16 bg-white border-b border-gray-100 flex items-center justify-between px-3 lg:px-8 shrink-0 z-20">
+        <header className="h-14 lg:h-16 bg-aura-black border-b border-aura-gray/30 flex items-center justify-between px-3 lg:px-8 shrink-0 z-20">
           <div className="flex items-center gap-3">
-            {/* ... header content ... */}
-            <button onClick={() => setShowSidebar(true)} className="lg:hidden p-2 text-gray-500"><Menu size={24} /></button>
-            <h1 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
+            <button onClick={() => setShowSidebar(true)} className="lg:hidden p-2 text-gray-400 hover:text-white"><Menu size={24} /></button>
+            <h1 className="text-lg lg:text-xl font-bold text-aura-white flex items-center gap-2">
               <span className="capitalize">
                 {activeSection === 'tasks' ? (
                   currentView === 'hoy' ? 'Hoy' :
@@ -430,9 +412,9 @@ export default function App() {
               </span>
             </h1>
           </div>
-          <button onClick={() => setShowAura(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3 bg-indigo-600 text-white rounded-full shadow-sm hover:shadow-md transition-all">
-            <img src={AURA_IMAGE} className="w-5 h-5 lg:w-6 lg:h-6 rounded-full object-cover border border-white/30" alt="Aura" />
-            <span className="text-xs lg:text-sm font-bold">Aura</span>
+          <button onClick={() => setShowAura(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3 bg-aura-gray hover:bg-aura-gray-light text-aura-white rounded-full shadow-sm hover:shadow-md transition-all border border-white/10">
+            <img src={AURA_IMAGE} className="w-5 h-5 lg:w-6 lg:h-6 rounded-full object-cover border border-white/10" alt="Aura" />
+            <span className="text-xs lg:text-sm font-semibold text-gray-200">Aura</span>
           </button>
         </header>
 
@@ -440,14 +422,13 @@ export default function App() {
           {renderActiveSection()}
         </div>
 
-        {/* GLOBAL QUICK ADD BAR */}
         {activeSection === 'tasks' && currentView !== 'proyectos' && currentView !== 'recurrentes' && currentView !== 'insights' && (
           <div className="fixed bottom-[68px] md:bottom-8 left-4 right-4 md:left-[calc(50%+8rem)] md:right-8 z-30 flex justify-center md:justify-end pointer-events-none">
-            <div className={`pointer-events-auto bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 flex items-center gap-2 transition-all duration-300 w-full md:max-w-xl ${isQuickAdding ? 'scale-100 opacity-100 ring-2 ring-indigo-500/20' : 'scale-95 opacity-90 hover:scale-100 hover:opacity-100'}`}>
+            <div className={`pointer-events-auto bg-aura-gray/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 p-2 flex items-center gap-2 transition-all duration-300 w-full md:max-w-xl ${isQuickAdding ? 'scale-100 opacity-100 ring-2 ring-aura-accent/20' : 'scale-95 opacity-90 hover:scale-100 hover:opacity-100'}`}>
 
               <button
                 onClick={openNewTaskModal}
-                className="w-10 h-10 bg-indigo-100 hover:bg-indigo-600 hover:text-white rounded-xl flex items-center justify-center text-indigo-600 flex-shrink-0 transition-colors"
+                className="w-10 h-10 bg-aura-gray-light hover:bg-aura-accent hover:text-aura-black rounded-xl flex items-center justify-center text-aura-accent flex-shrink-0 transition-colors"
                 title="Crear tarea detallada"
               >
                 <Plus size={24} />
@@ -460,9 +441,9 @@ export default function App() {
                 onFocus={() => setIsQuickAdding(true)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(quickAddText); }}
                 placeholder="Escribe 'Comprar pan mañana'..."
-                className="flex-1 border-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-base md:text-lg bg-transparent"
+                className="flex-1 border-none focus:ring-0 text-aura-white placeholder:text-gray-500 text-base md:text-lg bg-transparent"
               />
-              {quickAddText && <button onClick={() => handleAddTask(quickAddText)} className="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors">Añadir</button>}
+              {quickAddText && <button onClick={() => handleAddTask(quickAddText)} className="bg-aura-white text-aura-black px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">Añadir</button>}
             </div>
           </div>
         )}
@@ -470,8 +451,8 @@ export default function App() {
         <BottomNavbar activeSection={activeSection} setActiveSection={setActiveSection} />
 
         {toast && (
-          <div className="fixed top-20 right-4 z-[100] bg-gray-900 text-white px-4 py-2 rounded-xl shadow-xl animate-fade-in-up flex items-center gap-2 pointer-events-none">
-            <CheckCircle size={16} className="text-green-400" />
+          <div className="fixed top-20 right-4 z-[100] bg-aura-gray border border-white/10 text-white px-4 py-2 rounded-xl shadow-xl animate-fade-in-up flex items-center gap-2 pointer-events-none">
+            <CheckCircle size={16} className="text-aura-accent" />
             {toast}
           </div>
         )}
@@ -488,13 +469,22 @@ export default function App() {
           showToast("Tarea actualizada por Aura");
         }}
         onCommand={handleAddTask}
-        onAddEvent={(title, date) => handleAddTask({ id: Date.now().toString(), title, date, priority: 'media', status: 'todo', type: 'event', listId: '1', tags: [] })}
+        onAddEvent={(title, date) => handleAddTask({
+          id: Date.now().toString(),
+          ownerId: user.id,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          title, date, priority: 'media', status: 'todo', type: 'event', listId: '1', tags: []
+        })}
         onCreateContact={async (contact) => {
           await contactsRepo.create(user.id, {
             name: 'Nuevo Contacto',
             email: '', phone: '', tags: [], notes: '',
             ...contact,
             id: Date.now().toString(),
+            ownerId: user.id,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
             lastContact: Date.now()
           });
           showToast("Contacto creado");
@@ -507,11 +497,13 @@ export default function App() {
         onCreateNote={async (title, content) => {
           await notesRepo.create(user.id, {
             id: Date.now().toString(),
+            ownerId: user.id,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
             title,
             content,
             blocks: [{ id: 'b1', type: 'text', content }],
-            updatedAt: Date.now()
-          }, user.id);
+          });
           showToast("Nota creada");
         }}
         onUpdateNote={(id, updates) => {

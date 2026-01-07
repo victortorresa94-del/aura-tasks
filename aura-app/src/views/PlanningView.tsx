@@ -49,8 +49,8 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
   };
 
   return (
-    <div className="h-full flex flex-col p-4 md:p-8 space-y-6 overflow-hidden relative">
-      <div className="flex gap-4 border-b border-gray-100 overflow-x-auto no-scrollbar shrink-0">
+    <div className="h-full flex flex-col p-4 md:p-8 space-y-6 overflow-hidden relative bg-aura-black">
+      <div className="flex gap-4 border-b border-white/5 overflow-x-auto no-scrollbar shrink-0">
         {[
           { id: 'calendar', label: 'Calendario', icon: <CalendarIcon size={16} /> },
           { id: 'finance', label: 'Finanzas', icon: <Wallet size={16} /> },
@@ -59,7 +59,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
         ].map(tab => (
           <button
             key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 py-3 px-4 text-sm font-bold whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'
+            className={`flex items-center gap-2 py-3 px-4 text-sm font-bold whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id ? 'border-aura-accent text-aura-accent' : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
           >
             {tab.icon} {tab.label}
@@ -74,21 +74,21 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
 
         {activeTab === 'finance' && (
           <div className="space-y-6 animate-fade-in-up pb-24">
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
+            <div className="bg-aura-gray/20 p-8 rounded-3xl border border-white/5 shadow-sm text-center">
               <p className="text-gray-400 text-sm font-medium mb-1">Balance Total</p>
-              <h2 className={`text-4xl font-bold ${totalBalance >= 0 ? 'text-gray-900' : 'text-red-500'}`}>
+              <h2 className={`text-4xl font-bold ${totalBalance >= 0 ? 'text-aura-white' : 'text-red-400'}`}>
                 {totalBalance.toLocaleString()}€
               </h2>
               <div className="flex gap-4 mt-8 justify-center">
                 <button
                   onClick={() => openTransactionModal('income')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-bold border border-emerald-100 hover:bg-emerald-100 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-500/10 text-emerald-400 rounded-2xl font-bold border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
                 >
                   <TrendingUp size={18} /> Ingreso
                 </button>
                 <button
                   onClick={() => openTransactionModal('expense')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-50 text-red-700 rounded-2xl font-bold border border-red-100 hover:bg-red-100 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-500/10 text-red-400 rounded-2xl font-bold border border-red-500/20 hover:bg-red-500/20 transition-colors"
                 >
                   <TrendingDown size={18} /> Gasto
                 </button>
@@ -96,21 +96,21 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Movimientos recientes</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Movimientos recientes</h3>
               {transactions.length === 0 ? (
-                <p className="text-center py-10 text-gray-400 italic">No hay transacciones registradas</p>
+                <p className="text-center py-10 text-gray-600 italic">No hay transacciones registradas</p>
               ) : transactions.map(t => (
-                <div key={t.id} className="bg-white p-4 rounded-2xl border border-gray-50 flex items-center justify-between shadow-sm">
+                <div key={t.id} className="bg-aura-gray/20 p-4 rounded-2xl border border-white/5 flex items-center justify-between shadow-sm hover:border-aura-accent/20 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl ${t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                    <div className={`p-2 rounded-xl ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                       <DollarSign size={18} />
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">{t.description}</p>
+                      <p className="font-bold text-aura-white">{t.description}</p>
                       <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">{t.category}</p>
                     </div>
                   </div>
-                  <span className={`font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <span className={`font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
                     {t.type === 'income' ? '+' : '-'}{t.amount}€
                   </span>
                 </div>
@@ -128,25 +128,25 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
                   const name = prompt("Nombre del hábito:");
                   if (name) setHabits(prev => [...prev, { id: Date.now().toString(), name, frequency: 'daily', streak: 0, completedDays: [] }]);
                 }}
-                className="text-indigo-600 p-2 hover:bg-indigo-50 rounded-xl transition-all"
+                className="text-aura-accent p-2 hover:bg-aura-accent/10 rounded-xl transition-all"
               >
                 <Plus size={20} />
               </button>
             </div>
             {habits.length === 0 ? (
-              <div className="bg-white p-12 rounded-3xl border border-dashed border-gray-200 text-center text-gray-400">
+              <div className="bg-aura-gray/20 p-12 rounded-3xl border border-dashed border-white/10 text-center text-gray-400">
                 <Repeat size={40} className="mx-auto mb-4 opacity-20" />
                 <p>Establece hábitos para tu crecimiento</p>
               </div>
             ) : habits.map(habit => (
-              <div key={habit.id} className="bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm group">
+              <div key={habit.id} className="bg-aura-gray/20 p-5 rounded-2xl border border-white/5 flex items-center justify-between shadow-sm group hover:border-aura-accent/30 transition-all">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold border border-orange-500/20">
                     {habit.streak}
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900">{habit.name}</h4>
-                    <p className="text-xs text-gray-500 capitalize">{habit.frequency}</p>
+                    <h4 className="font-bold text-aura-white">{habit.name}</h4>
+                    <p className="text-xs text-gray-400 capitalize">{habit.frequency}</p>
                   </div>
                 </div>
                 <button
@@ -154,7 +154,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
                     // Simple increment logic for demo
                     setHabits(prev => prev.map(h => h.id === habit.id ? { ...h, streak: h.streak + 1 } : h));
                   }}
-                  className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all"
+                  className="p-3 bg-white/5 text-gray-400 rounded-xl hover:bg-aura-accent hover:text-aura-black transition-all"
                 >
                   <CheckCircle2 size={24} />
                 </button>
@@ -166,13 +166,13 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
         {activeTab === 'projects' && (
           <div className="space-y-6 animate-fade-in-up pb-24">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg shadow-indigo-100">
+              <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 p-6 rounded-3xl text-white shadow-lg border border-indigo-500/20">
                 <h4 className="text-lg font-bold mb-1">Lanzamiento App</h4>
-                <p className="text-indigo-100 text-xs opacity-80 mb-6">Objetivo: Q4 2025</p>
-                <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden mb-2">
-                  <div className="bg-white h-full" style={{ width: '65%' }} />
+                <p className="text-indigo-200 text-xs opacity-80 mb-6">Objetivo: Q4 2025</p>
+                <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden mb-2">
+                  <div className="bg-aura-accent h-full" style={{ width: '65%' }} />
                 </div>
-                <p className="text-[10px] font-bold text-right uppercase tracking-widest">65% completado</p>
+                <p className="text-[10px] font-bold text-right uppercase tracking-widest text-indigo-300">65% completado</p>
               </div>
             </div>
           </div>
@@ -181,10 +181,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
 
       {/* Transaction Modal */}
       {showTransactionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in-up">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              {transactionType === 'income' ? <TrendingUp className="text-emerald-500" /> : <TrendingDown className="text-red-500" />}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
+          <div className="bg-aura-black rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/10">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-aura-white">
+              {transactionType === 'income' ? <TrendingUp className="text-emerald-400" /> : <TrendingDown className="text-red-400" />}
               {transactionType === 'income' ? 'Añadir Ingreso' : 'Añadir Gasto'}
             </h3>
 
@@ -196,7 +196,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   autoFocus
-                  className="w-full text-2xl font-bold border-b border-gray-200 py-2 focus:border-indigo-500 outline-none text-gray-900"
+                  className="w-full text-2xl font-bold bg-transparent border-b border-white/10 py-2 focus:border-aura-accent outline-none text-aura-white placeholder:text-gray-700"
                   placeholder="0.00"
                 />
               </div>
@@ -206,7 +206,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  className="w-full border border-white/10 bg-aura-gray/20 rounded-lg px-3 py-2 mt-1 focus:ring-1 focus:ring-aura-accent outline-none text-aura-white"
                   placeholder="Ej: Nómina, Supermercado..."
                 />
               </div>
@@ -215,7 +215,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-100 outline-none bg-white"
+                  className="w-full border border-white/10 bg-aura-gray/20 rounded-lg px-3 py-2 mt-1 focus:ring-1 focus:ring-aura-accent outline-none text-aura-white"
                 >
                   <option value="">Seleccionar...</option>
                   {transactionType === 'income'
@@ -227,7 +227,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
             </div>
 
             <div className="flex gap-3 mt-8">
-              <button onClick={() => setShowTransactionModal(false)} className="flex-1 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition-colors">Cancelar</button>
+              <button onClick={() => setShowTransactionModal(false)} className="flex-1 py-2 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors">Cancelar</button>
               <button
                 onClick={handleAddTransaction}
                 className={`flex-1 py-2 text-white font-bold rounded-xl shadow-md transition-all ${transactionType === 'income' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}

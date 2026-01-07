@@ -28,7 +28,7 @@ const TopTabsBar: React.FC<TopTabsBarProps> = ({
     };
 
     return (
-        <div className="flex items-end gap-0 px-2 pt-2 bg-gray-200/50 border-b border-gray-300 overflow-x-auto scrollbar-hide scroll-smooth shrink-0 h-10 select-none">
+        <div className="flex items-end gap-0 px-2 pt-2 bg-aura-black border-b border-aura-gray/30 overflow-x-auto scrollbar-hide scroll-smooth shrink-0 h-10 select-none">
             {tabs.map((tab) => {
                 const isActive = activeTabId === tab.id;
                 // Chrome-like shape magic using clip-path or clever bordering
@@ -40,10 +40,10 @@ const TopTabsBar: React.FC<TopTabsBarProps> = ({
                         onClick={() => onSelectTab(tab)}
                         className={`
                             group relative flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-t-xl text-xs font-medium cursor-pointer transition-all min-w-[120px] sm:min-w-[140px] max-w-[200px]
-                            mr-[-8px] z-0 hover:z-10
+                            mr-[-8px] z-0 hover:z-10 border-t border-x
                             ${isActive
-                                ? 'bg-white text-gray-800 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-20 pb-2.5 mb-[-1px] border-t border-x border-gray-100' // Active tab connects to content
-                                : 'bg-gray-300/50 text-gray-600 hover:bg-gray-300 hover:text-gray-800 border-t border-x border-transparent'
+                                ? 'bg-aura-black text-aura-white shadow-[0_-2px_10px_rgba(0,0,0,0.2)] z-20 pb-2.5 mb-[-1px] border-aura-gray/30 border-b-aura-black' // Active tab connects to content
+                                : 'bg-aura-gray/20 text-gray-500 hover:bg-aura-gray/40 hover:text-aura-white border-transparent'
                             }
                         `}
                     >
@@ -63,7 +63,7 @@ const TopTabsBar: React.FC<TopTabsBarProps> = ({
 
                             <button
                                 onClick={(e) => { e.stopPropagation(); onCloseTab(tab.id); }}
-                                className="p-0.5 rounded-full hover:bg-gray-200 hover:text-red-500 text-gray-400"
+                                className="p-0.5 rounded-full hover:bg-white/10 hover:text-red-400 text-gray-500"
                             >
                                 <X size={12} />
                             </button>
@@ -71,14 +71,14 @@ const TopTabsBar: React.FC<TopTabsBarProps> = ({
 
                         {/* Separator for inactive tabs (pseudo-element simulation) */}
                         {!isActive && (
-                            <div className="absolute right-0 top-1.5 bottom-1.5 w-[1px] bg-gray-400/30 group-hover:hidden"></div>
+                            <div className="absolute right-0 top-1.5 bottom-1.5 w-[1px] bg-white/5 group-hover:hidden"></div>
                         )}
                     </div>
                 );
             })}
 
             {/* New Tab Button visual cue (Optional) */}
-            <div className="ml-4 p-1 text-gray-400 hover:text-gray-600 cursor-pointer">
+            <div className="ml-4 p-1 text-gray-600 hover:text-gray-400 cursor-pointer">
                 {/* <Plus size={16} /> */}
             </div>
         </div>
