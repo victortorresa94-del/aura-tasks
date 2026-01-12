@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Wallet, Target, Repeat, Plus, TrendingUp, TrendingDown, DollarSign, CheckCircle2, Calendar as CalendarIcon, CreditCard, Zap, Edit3, Tv, Music, Bot, ShoppingBag, Palette, Video, Cloud, Home, Wifi, Dumbbell, Car, Phone } from 'lucide-react';
+import { Wallet, Target, Repeat, Plus, TrendingUp, TrendingDown, DollarSign, CheckCircle2, Calendar as CalendarIcon, CreditCard, Zap, Edit3, Tv, Music, Bot, ShoppingBag, Palette, Video, Cloud, Home, Wifi, Dumbbell, Car, Phone, Clock, Apple } from 'lucide-react';
 import { Transaction, Habit, Task, Subscription, RecurringExpense } from '../types';
 import CalendarView from './CalendarView';
+import { HabitsManager } from '../components/planning/HabitsManager';
+import { RoutinesManager } from '../components/planning/RoutinesManager';
+import { NutritionLayout } from '../components/planning/nutrition/NutritionLayout';
 
 interface PlanningViewProps {
   tasks: Task[];
@@ -32,7 +35,7 @@ const getServiceStyle = (name: string) => {
 };
 
 const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transactions, setTransactions, habits, setHabits }) => {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'finance' | 'habits' | 'projects'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'finance' | 'habits' | 'routines' | 'nutrition' | 'projects'>('calendar');
 
   // Modals State
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -52,7 +55,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
   const [subName, setSubName] = useState('');
   const [subAmount, setSubAmount] = useState('');
   const [subDate, setSubDate] = useState('');
-  const [subFreq, setSubFreq] = useState('monthly');
+  const [subFreq, setSubFreq] = useState<'monthly' | 'yearly'>('monthly');
 
   // Recurring Form
   const [recName, setRecName] = useState('');
@@ -139,6 +142,8 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
           { id: 'calendar', label: 'Calendario', icon: <CalendarIcon size={16} /> },
           { id: 'finance', label: 'Finanzas', icon: <Wallet size={16} /> },
           { id: 'habits', label: 'Hábitos', icon: <Repeat size={16} /> },
+          { id: 'routines', label: 'Rutinas', icon: <Clock size={16} /> },
+          { id: 'nutrition', label: 'Nutrición', icon: <Apple size={16} /> },
           { id: 'projects', label: 'Proyectos', icon: <Target size={16} /> },
         ].map(tab => (
           <button
@@ -332,47 +337,15 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
         )}
 
         {activeTab === 'habits' && (
-          <div className="space-y-4 animate-fade-in-up pb-24">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Rachas actuales</h3>
-              <button
-                onClick={() => {
-                  const name = prompt("Nombre del hábito:");
-                  if (name) setHabits(prev => [...prev, { id: Date.now().toString(), name, frequency: 'daily', streak: 0, completedDays: [] }]);
-                }}
-                className="text-aura-accent p-2 hover:bg-aura-accent/10 rounded-xl transition-all"
-              >
-                <Plus size={20} />
-              </button>
-            </div>
-            {habits.length === 0 ? (
-              <div className="bg-aura-gray/20 p-12 rounded-3xl border border-dashed border-white/10 text-center text-gray-400">
-                <Repeat size={40} className="mx-auto mb-4 opacity-20" />
-                <p>Establece hábitos para tu crecimiento</p>
-              </div>
-            ) : habits.map(habit => (
-              <div key={habit.id} className="bg-aura-gray/20 p-5 rounded-2xl border border-white/5 flex items-center justify-between shadow-sm group hover:border-aura-accent/30 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold border border-orange-500/20">
-                    {habit.streak}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-aura-white">{habit.name}</h4>
-                    <p className="text-xs text-gray-400 capitalize">{habit.frequency}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    // Simple increment logic for demo
-                    setHabits(prev => prev.map(h => h.id === habit.id ? { ...h, streak: h.streak + 1 } : h));
-                  }}
-                  className="p-3 bg-white/5 text-gray-400 rounded-xl hover:bg-aura-accent hover:text-aura-black transition-all"
-                >
-                  <CheckCircle2 size={24} />
-                </button>
-              </div>
-            ))}
-          </div>
+          <HabitsManager />
+        )}
+
+        {activeTab === 'routines' && (
+          <RoutinesManager />
+        )}
+
+        {activeTab === 'nutrition' && (
+          <NutritionLayout />
         )}
 
         {activeTab === 'projects' && (
