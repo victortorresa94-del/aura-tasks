@@ -10,6 +10,16 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+    // Navigation requests (HTML) -> Network First, fall back to cache
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // Assets (JS, CSS, Images) -> Cache First, fall back to network
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
