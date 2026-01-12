@@ -3,6 +3,8 @@ import {
     GoogleAuthProvider,
     signOut as firebaseSignOut,
     onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence,
     User
 } from 'firebase/auth';
 import { auth } from './config';
@@ -11,6 +13,7 @@ const googleProvider = new GoogleAuthProvider();
 
 export const loginWithGoogle = async () => {
     try {
+        await setPersistence(auth, browserLocalPersistence);
         const result = await signInWithPopup(auth, googleProvider);
         return result.user;
     } catch (error) {

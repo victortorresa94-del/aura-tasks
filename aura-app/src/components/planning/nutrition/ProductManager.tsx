@@ -131,7 +131,7 @@ export const ProductManager: React.FC = () => {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-md p-8 border border-white/10 shadow-2xl">
+                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-md p-8 border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <h3 className="text-2xl font-bold text-white mb-6">{editingProduct ? 'Editar Producto' : 'Nuevo Producto'}</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>

@@ -90,6 +90,7 @@ export interface ShoppingItem {
 export interface ShoppingList {
     id: string;
     userId: string;
+    name: string; // Added for multiple lists
     weekPlanId?: string; // Si está vinculada a un plan
     items: ShoppingItem[];
     status: 'active' | 'archived' | 'completed';

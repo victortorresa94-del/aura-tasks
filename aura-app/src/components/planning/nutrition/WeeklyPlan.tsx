@@ -14,13 +14,16 @@ export const WeeklyPlan: React.FC = () => {
     const [weekPlan, setWeekPlan] = useState<WeekPlan | null>(null);
     const [recipes, setRecipes] = useState<Recipe[]>([]);
 
+    // Recents State
+    const [recents, setRecents] = useState<any[]>([]);
+
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
 
     // Selection State
-    const [selectionType, setSelectionType] = useState<'recipe' | 'text'>('recipe');
+    const [selectionType, setSelectionType] = useState<'recipe' | 'text' | 'recent'>('recipe');
     const [selectedRecipeId, setSelectedRecipeId] = useState('');
     const [manualText, setManualText] = useState('');
 
@@ -28,6 +31,7 @@ export const WeeklyPlan: React.FC = () => {
         if (user) {
             loadRecipes();
             loadPlan();
+            loadRecents();
         }
     }, [user, currentDate]);
 
@@ -44,6 +48,12 @@ export const WeeklyPlan: React.FC = () => {
         if (!user) return;
         const data = await nutritionService.getUserRecipes(user.uid);
         setRecipes(data);
+    };
+
+    const loadRecents = async () => {
+        if (!user) return;
+        const data = await nutritionService.getRecentMealItems(user.uid);
+        setRecents(data);
     };
 
     const loadPlan = async () => {
@@ -96,18 +106,30 @@ export const WeeklyPlan: React.FC = () => {
         setSelectedRecipeId('');
         setManualText('');
         setIsModalOpen(true);
+        loadRecents();
     };
 
     const addToSlot = () => {
         if (!weekPlan || !selectedDay || !selectedMeal) return;
 
-        const newItem = {
-            type: selectionType,
-            value: selectionType === 'recipe' ? selectedRecipeId : manualText,
-            name: selectionType === 'recipe'
-                ? recipes.find(r => r.id === selectedRecipeId)?.name || 'Receta'
-                : manualText
-        };
+        let newItem;
+
+        if (selectionType === 'recipe') {
+            newItem = {
+                type: 'recipe',
+                value: selectedRecipeId,
+                name: recipes.find(r => r.id === selectedRecipeId)?.name || 'Receta'
+            };
+        } else if (selectionType === 'text') {
+            newItem = {
+                type: 'text',
+                value: manualText,
+                name: manualText
+            };
+        } else {
+            // Should not happen via 'Add' button if hidden, but just in case
+            return;
+        }
 
         if (!newItem.value) return;
 
@@ -236,25 +258,31 @@ export const WeeklyPlan: React.FC = () => {
             {/* Modal Selection */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-[#1A1A1A] rounded-2xl w-full max-w-sm p-6 border border-white/10 shadow-xl">
+                    <div className="bg-[#1A1A1A] rounded-2xl w-full max-w-sm p-6 border border-white/10 shadow-xl max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-bold text-white mb-4 capitalize">Añadir a {selectedDay} - {selectedMeal === 'lunch' ? 'Comida' : selectedMeal === 'dinner' ? 'Cena' : 'Desayuno'}</h3>
 
-                        <div className="flex gap-2 mb-4">
+                        <div className="flex gap-2 mb-4 bg-black/20 p-1 rounded-xl">
                             <button
                                 onClick={() => setSelectionType('recipe')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${selectionType === 'recipe' ? 'bg-aura-accent text-black' : 'bg-white/5 text-gray-400'}`}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${selectionType === 'recipe' ? 'bg-aura-accent text-black' : 'text-gray-400 hover:text-white'}`}
                             >
-                                Receta
+                                Recetas
+                            </button>
+                            <button
+                                onClick={() => setSelectionType('recent')}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${selectionType === 'recent' ? 'bg-aura-accent text-black' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                Recientes
                             </button>
                             <button
                                 onClick={() => setSelectionType('text')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${selectionType === 'text' ? 'bg-aura-accent text-black' : 'bg-white/5 text-gray-400'}`}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${selectionType === 'text' ? 'bg-aura-accent text-black' : 'text-gray-400 hover:text-white'}`}
                             >
-                                Texto Libre
+                                Texto
                             </button>
                         </div>
 
-                        {selectionType === 'recipe' ? (
+                        {selectionType === 'recipe' && (
                             <div className="mb-4">
                                 <select
                                     value={selectedRecipeId}
@@ -265,7 +293,36 @@ export const WeeklyPlan: React.FC = () => {
                                     {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                             </div>
-                        ) : (
+                        )}
+
+                        {selectionType === 'recent' && (
+                            <div className="mb-4 max-h-[200px] overflow-y-auto space-y-2">
+                                {recents.length === 0 ? (
+                                    <p className="text-gray-500 text-sm text-center py-4">No hay ítems recientes</p>
+                                ) : (
+                                    recents.map((item, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                if (item.type === 'recipe') {
+                                                    setSelectionType('recipe');
+                                                    setSelectedRecipeId(item.value);
+                                                } else {
+                                                    setSelectionType('text');
+                                                    setManualText(item.name);
+                                                }
+                                            }}
+                                            className="w-full text-left bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/5 transition-colors"
+                                        >
+                                            <p className="text-sm font-bold text-white">{item.name}</p>
+                                            <p className="text-[10px] text-gray-500 uppercase">{item.type === 'recipe' ? 'Receta' : 'Manual'}</p>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {selectionType === 'text' && (
                             <div className="mb-4">
                                 <input
                                     type="text"
@@ -279,8 +336,10 @@ export const WeeklyPlan: React.FC = () => {
                         )}
 
                         <div className="flex gap-3">
-                            <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-gray-400 hover:text-white">Cancelar</button>
-                            <button onClick={addToSlot} className="flex-1 py-2 bg-emerald-600 text-white rounded-xl font-bold">Añadir</button>
+                            <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-gray-400 hover:text-white font-bold">Cancelar</button>
+                            {selectionType !== 'recent' && (
+                                <button onClick={addToSlot} className="flex-1 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-colors">Añadir</button>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -139,7 +139,7 @@ export const RecipeManager: React.FC = () => {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-2xl p-8 border border-white/10 shadow-2xl h-[90vh] flex flex-col">
+                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-2xl p-8 border border-white/10 shadow-2xl max-h-[90vh] flex flex-col">
                         <h3 className="text-2xl font-bold text-white mb-6">Nueva Receta</h3>
                         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
                             <div className="flex-1 overflow-y-auto pr-2 space-y-6">

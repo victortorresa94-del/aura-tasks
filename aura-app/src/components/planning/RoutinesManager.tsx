@@ -16,6 +16,7 @@ export const RoutinesManager: React.FC = () => {
     const [name, setName] = useState('');
     const [context, setContext] = useState('mañana');
     const [steps, setSteps] = useState<RoutineStep[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (user) loadRoutines();
@@ -33,25 +34,42 @@ export const RoutinesManager: React.FC = () => {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || isSubmitting) return;
 
-        const routineData = {
-            name,
-            context: context as any,
-            steps,
-            estimatedDurationMinutes: calculateDuration(steps)
-        };
+        setIsSubmitting(true);
+        try {
+            const routineData = {
+                name,
+                context: context as any,
+                steps,
+                estimatedDurationMinutes: calculateDuration(steps)
+            };
 
-        if (editingRoutine) {
-            await habitService.updateRoutine(editingRoutine.id, routineData);
-        } else {
-            await habitService.createRoutine(user.uid, routineData);
+            if (editingRoutine) {
+                await habitService.updateRoutine(editingRoutine.id, routineData);
+            } else {
+                await habitService.createRoutine(user.uid, routineData);
+            }
+
+            setIsModalOpen(false);
+            resetForm();
+            loadRoutines();
+        } catch (error) {
+            console.error("Error saving routine:", error);
+            // Optionally show error to user
+        } finally {
+            setIsSubmitting(false);
         }
-
-        setIsModalOpen(false);
-        resetForm();
-        loadRoutines();
     };
+
+    // ...
+
+    // In render (modal form buttons):
+    <div className="flex gap-4 pt-6 mt-4 border-t border-white/10">
+        <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50">Cancelar</button>
+        <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors disabled:opacity-50 flex justify-center">{isSubmitting ? 'Guardando...' : 'Guardar Rutina'}</button>
+    </div>
+
 
     const resetForm = () => {
         setEditingRoutine(null);
@@ -115,14 +133,14 @@ export const RoutinesManager: React.FC = () => {
     return (
         <div className="space-y-6 pb-24">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-white">Rutinas en Bloque</h2>
                     <p className="text-gray-400 text-sm">Secuencias para simplificar tu día</p>
                 </div>
                 <button
                     onClick={() => { resetForm(); setIsModalOpen(true); }}
-                    className="bg-aura-accent text-aura-black px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    className="bg-aura-accent text-aura-black px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity w-full md:w-auto"
                 >
                     <Plus size={18} /> Nueva Rutina
                 </button>

@@ -36,7 +36,7 @@ import { useFirestoreCollection } from './hooks/useFirestoreCollection';
 
 export default function App() {
   // Main Section Navigation
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = usePersistedState('active_section', 'dashboard', 'aura_active_section');
   const [currentView, setCurrentView] = useState('hoy');
 
   // Tabs System
@@ -453,13 +453,24 @@ export default function App() {
           {renderActiveSection()}
         </div>
 
+        {/* Quick Add Backdrop */}
+        {isQuickAdding && (
+          <div
+            className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm animate-fade-in"
+            onClick={() => {
+              setIsQuickAdding(false);
+              setQuickAddText('');
+            }}
+          />
+        )}
+
         {activeSection === 'tasks' && currentView !== 'proyectos' && currentView !== 'recurrentes' && currentView !== 'insights' && (
-          <div className="fixed bottom-[68px] md:bottom-8 left-0 right-0 z-50 flex justify-center pointer-events-none">
-            <div className={`pointer-events-auto bg-aura-gray/90 backdrop-blur-md rounded-full shadow-2xl border border-white/10 p-1.5 pl-4 flex items-center gap-3 transition-all duration-300 w-[90%] md:w-full md:max-w-xl ${isQuickAdding ? 'scale-100 opacity-100 ring-2 ring-aura-accent/20 translate-y-0' : 'scale-95 opacity-90 hover:scale-100 hover:opacity-100 translate-y-1'}`}>
+          <div className={`fixed bottom-0 left-0 right-0 z-50 flex justify-center transition-all duration-300 ${isQuickAdding ? 'pb-2' : 'pb-[80px] md:pb-8 pointer-events-none'}`}>
+            <div className={`pointer-events-auto bg-aura-gray/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 p-2 flex items-center gap-3 transition-all duration-300 w-full md:max-w-xl mx-2 ${isQuickAdding ? 'translate-y-0 opacity-100 ring-1 ring-aura-accent/20' : 'translate-y-0 opacity-90 hover:scale-100 hover:opacity-100'}`}>
 
               <button
                 onClick={openNewTaskModal}
-                className="w-10 h-10 bg-aura-gray-light hover:bg-aura-accent hover:text-aura-black rounded-full flex items-center justify-center text-aura-accent flex-shrink-0 transition-all border border-white/5"
+                className="w-10 h-10 bg-aura-gray-light hover:bg-aura-accent hover:text-aura-black rounded-xl flex items-center justify-center text-aura-accent flex-shrink-0 transition-all border border-white/5"
                 title="Crear tarea detallada"
               >
                 <Plus size={22} />
@@ -470,7 +481,13 @@ export default function App() {
                 value={quickAddText}
                 onChange={(e) => setQuickAddText(e.target.value)}
                 onFocus={() => setIsQuickAdding(true)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(quickAddText); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddTask(quickAddText);
+                    // Keep focus if needed or close? usually keep for multiple adds
+                    // But for mobile, maybe close? Let's keep focus for speed.
+                  }
+                }}
                 placeholder="Añadir tarea..."
                 className="flex-1 border-none focus:ring-0 text-aura-white placeholder:text-gray-500 text-base bg-transparent h-full py-2"
               />
@@ -478,15 +495,15 @@ export default function App() {
               <button
                 onClick={() => handleAddTask(quickAddText)}
                 disabled={!quickAddText.trim()}
-                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${quickAddText.trim() ? 'bg-aura-white text-aura-black hover:bg-gray-200 shadow-md' : 'bg-white/5 text-gray-500 cursor-not-allowed'}`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${quickAddText.trim() ? 'bg-aura-accent text-aura-black shadow-lg shadow-aura-accent/20' : 'bg-white/5 text-gray-500 cursor-not-allowed'}`}
               >
-                Añadir
+                <div className="rotate-90"><PlayCircle size={20} /></div>
               </button>
             </div>
           </div>
         )}
 
-        <BottomNavbar activeSection={activeSection} setActiveSection={setActiveSection} />
+        {!isQuickAdding && <BottomNavbar activeSection={activeSection} setActiveSection={setActiveSection} />}
 
         {toast && (
           <div className="fixed top-20 right-4 z-[100] bg-aura-gray border border-white/10 text-white px-4 py-2 rounded-xl shadow-xl animate-fade-in-up flex items-center gap-2 pointer-events-none">

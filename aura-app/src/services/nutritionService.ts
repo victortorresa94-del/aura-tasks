@@ -85,33 +85,84 @@ export const nutritionService = {
 
     // --- LISTA DE LA COMPRA ---
 
-    async getActiveShoppingList(userId: string) {
+    async getShoppingLists(userId: string) {
         const q = query(
             collection(db, 'shopping_lists'),
             where('userId', '==', userId),
             where('status', '==', 'active')
         );
         const snap = await getDocs(q);
-        if (snap.empty) return null;
-        return convertData(snap.docs[0]) as ShoppingList;
+        return snap.docs.map(convertData) as ShoppingList[];
     },
 
-    async createOrUpdateShoppingList(userId: string, items: ShoppingList['items']) {
-        const current = await this.getActiveShoppingList(userId);
+    async getActiveShoppingList(userId: string) {
+        // Now returns the first active list or null
+        const lists = await this.getShoppingLists(userId);
+        return lists.length > 0 ? lists[0] : null;
+    },
+
+    async createOrUpdateShoppingList(userId: string, items: ShoppingList['items'], listId?: string, name: string = 'Lista General') {
         const ref = collection(db, 'shopping_lists');
 
-        if (current) {
-            await updateDoc(doc(db, 'shopping_lists', current.id), { items });
-            return { ...current, items };
+        if (listId) {
+            await updateDoc(doc(db, 'shopping_lists', listId), { items });
+            // Return updated structure mocked (or fetch it)
+            return { id: listId, userId, items, status: 'active', name, createdAt: Timestamp.now() } as ShoppingList;
         } else {
             const newList = {
                 userId,
+                name,
                 items,
                 status: 'active',
                 createdAt: Timestamp.now()
             };
             const docRef = await addDoc(ref, newList);
-            return { id: docRef.id, ...newList };
+            return { id: docRef.id, ...newList } as ShoppingList;
         }
+    },
+
+    // --- RECENT MEALS HISTORY ---
+
+    async getRecentMealItems(userId: string, limitCount = 50) {
+        // Fetch last 4 week plans
+        // Note: Firestore orderBy on string dates (YYYY-MM-DD) works lexicographically
+        const q = query(
+            collection(db, 'week_plans'),
+            where('userId', '==', userId),
+            // orderBy('startDate', 'desc'), // Needs index, might fail without it. 
+            // We'll client-side filter or assume small dataset for now or try-catch.
+            // Safest without index is just get all (usually few) and sort in code.
+        );
+        const snap = await getDocs(q);
+        const plans = snap.docs.map(convertData) as WeekPlan[];
+
+        // Sort DESC
+        plans.sort((a, b) => b.startDate.localeCompare(a.startDate));
+
+        const recentItems: { type: 'recipe' | 'text', value: string, name: string }[] = [];
+        const seen = new Set<string>();
+
+        // Days iteration
+        const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        const meals = ['breakfast', 'lunch', 'dinner'];
+
+        for (const plan of plans) {
+            for (const day of dayKeys) {
+                const dayPlan = plan.days[day as keyof typeof plan.days] as any;
+                if (!dayPlan) continue;
+                for (const meal of meals) {
+                    const items = dayPlan[meal] || [];
+                    for (const item of items) {
+                        const key = `${item.type}:${item.value}`;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            recentItems.push(item);
+                            if (recentItems.length >= limitCount) return recentItems;
+                        }
+                    }
+                }
+            }
+        }
+        return recentItems;
     }
 };

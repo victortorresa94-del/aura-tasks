@@ -16,6 +16,7 @@ export const HabitsManager: React.FC = () => {
     const [intention, setIntention] = useState('');
     const [rhythm, setRhythm] = useState('');
     const [context, setContext] = useState('mañana');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (user) loadHabits();
@@ -33,8 +34,9 @@ export const HabitsManager: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || isSubmitting) return;
 
+        setIsSubmitting(true);
         try {
             if (editingHabit) {
                 await habitService.updateHabit(editingHabit.id, {
@@ -50,6 +52,8 @@ export const HabitsManager: React.FC = () => {
             loadHabits();
         } catch (error) {
             console.error("Error saving habit:", error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -137,7 +141,7 @@ export const HabitsManager: React.FC = () => {
             {/* Modal Crear/Editar */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-md p-8 border border-white/10 shadow-2xl">
+                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-md p-6 md:p-8 border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <h3 className="text-2xl font-bold text-white mb-6">
                             {editingHabit ? 'Editar Hábito' : 'Nuevo Hábito'}
                         </h3>
@@ -196,8 +200,8 @@ export const HabitsManager: React.FC = () => {
                             </div>
 
                             <div className="flex gap-4 pt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors">Cancelar</button>
-                                <button type="submit" className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors shadow-lg shadow-aura-accent/20">Guardar</button>
+                                <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50">Cancelar</button>
+                                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors shadow-lg shadow-aura-accent/20 disabled:opacity-50 flex justify-center">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
                             </div>
                         </form>
                     </div>
