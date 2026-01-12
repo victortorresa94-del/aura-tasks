@@ -32,6 +32,8 @@ export const RoutinesManager: React.FC = () => {
         return currentSteps.reduce((acc, step) => acc + (step.durationMinutes || 0), 0);
     };
 
+    const [emoji, setEmoji] = useState('🔄');
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || isSubmitting) return;
@@ -42,7 +44,8 @@ export const RoutinesManager: React.FC = () => {
                 name,
                 context: context as any,
                 steps,
-                estimatedDurationMinutes: calculateDuration(steps)
+                estimatedDurationMinutes: calculateDuration(steps),
+                emoji
             };
 
             if (editingRoutine) {
@@ -56,36 +59,36 @@ export const RoutinesManager: React.FC = () => {
             loadRoutines();
         } catch (error) {
             console.error("Error saving routine:", error);
-            // Optionally show error to user
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // ...
-
-    // In render (modal form buttons):
-    <div className="flex gap-4 pt-6 mt-4 border-t border-white/10">
-        <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50">Cancelar</button>
-        <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors disabled:opacity-50 flex justify-center">{isSubmitting ? 'Guardando...' : 'Guardar Rutina'}</button>
-    </div>
-
-
     const resetForm = () => {
         setEditingRoutine(null);
         setName('');
         setContext('mañana');
+        setEmoji('🔄');
         setSteps([]);
+        setIsSubmitting(false);
     };
 
     const openEdit = (routine: Routine) => {
         setEditingRoutine(routine);
         setName(routine.name);
         setContext(routine.context);
+        setEmoji(routine.emoji || '🔄');
         setSteps([...routine.steps]);
         setIsModalOpen(true);
     };
 
+    const handleEmojiClick = () => {
+        const emojis = ['🔄', '☀️', '🌙', '🏃', '🚿', '📖', '🍵', '🎧'];
+        const currentIdx = emojis.indexOf(emoji);
+        setEmoji(emojis[(currentIdx + 1) % emojis.length]);
+    };
+
+    // ... (rest of helper functions addStep, etc. remain the same) 
     const addStep = () => {
         const newStep: RoutineStep = {
             id: Date.now().toString(),
@@ -114,6 +117,7 @@ export const RoutinesManager: React.FC = () => {
         newSteps[index + (direction === 'up' ? -1 : 1)] = temp;
         setSteps(newSteps);
     };
+
 
     // Switcher between List and Player
     if (activeRoutine) {
@@ -148,15 +152,21 @@ export const RoutinesManager: React.FC = () => {
 
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {routines.map(routine => (
-                    <div key={routine.id} className="bg-aura-gray/30 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between h-[180px] group">
+                    <div key={routine.id} className="bg-aura-gray/30 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all flex flex-col justify-between h-[180px] group relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl pointer-events-none">
+                            {routine.emoji}
+                        </div>
                         <div>
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{routine.context}</span>
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                <div className="opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                                     <button onClick={() => openEdit(routine)} className="p-1 hover:text-white text-gray-400"><Edit3 size={16} /></button>
                                 </div>
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">{routine.name}</h3>
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                <span>{routine.emoji}</span>
+                                {routine.name}
+                            </h3>
                             <div className="flex items-center gap-2 text-gray-400 text-sm">
                                 <Clock size={14} />
                                 <span>{routine.estimatedDurationMinutes} min</span>
@@ -175,31 +185,47 @@ export const RoutinesManager: React.FC = () => {
                 ))}
             </div>
 
-            {/* Editor Modal */}
+            {/* Editor Modal - Mobile Bottom Sheet Style */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-2xl p-8 border border-white/10 shadow-2xl h-[90vh] flex flex-col">
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
+
+                    <div className="relative w-full sm:max-w-2xl bg-[#1A1A1A] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 border-t sm:border border-white/10 shadow-2xl max-h-[90vh] h-[90vh] sm:h-auto flex flex-col animate-slide-up ring-1 ring-white/10">
+                        {/* Drag Handle Mobile */}
+                        <div className="w-full flex justify-center mb-4 sm:hidden shrink-0">
+                            <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+                        </div>
+
                         <h3 className="text-2xl font-bold text-white mb-6 flex-shrink-0">
                             {editingRoutine ? 'Editar Rutina' : 'Nueva Rutina'}
                         </h3>
 
                         <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
-                            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+                                <div className="flex gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={handleEmojiClick}
+                                        className="w-16 h-12 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/5 transition-colors"
+                                    >
+                                        {emoji}
+                                    </button>
+                                    <div className="flex-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Nombre</label>
                                         <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none focus:border-aura-accent" placeholder="Rutina de Mañana" required />
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Contexto</label>
-                                        <select value={context} onChange={e => setContext(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none">
-                                            <option value="mañana">Mañana</option>
-                                            <option value="noche">Noche</option>
-                                            <option value="trabajo">Trabajo</option>
-                                            <option value="cuerpo">Cuerpo</option>
-                                        </select>
-                                    </div>
                                 </div>
+                                <div className="w-full">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Contexto</label>
+                                    <select value={context} onChange={e => setContext(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none">
+                                        <option value="mañana">Mañana</option>
+                                        <option value="noche">Noche</option>
+                                        <option value="trabajo">Trabajo</option>
+                                        <option value="cuerpo">Cuerpo</option>
+                                        <option value="mente">Mente</option>
+                                    </select>
+                                </div>
+
 
                                 <div>
                                     <div className="flex justify-between items-center mb-4">
@@ -242,9 +268,12 @@ export const RoutinesManager: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex gap-4 pt-6 mt-4 border-t border-white/10">
+                            <div className="flex gap-4 pt-6 mt-4 border-t border-white/10 shrink-0">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors">Cancelar</button>
-                                <button type="submit" className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors">Guardar Rutina</button>
+                                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors disabled:opacity-50 flex justify-center gap-2 items-center">
+                                    {isSubmitting && <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                                    {isSubmitting ? 'Guardando...' : 'Guardar Rutina'}
+                                </button>
                             </div>
                         </form>
                     </div>

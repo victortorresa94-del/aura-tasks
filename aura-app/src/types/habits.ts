@@ -12,6 +12,7 @@ export interface Habit {
     // Ritmo en lenguaje humano (ej: "3 veces por semana")
     rhythm?: string;
     context: HabitContext;
+    emoji?: string; // Nuevo: Emoji visual
     status: 'active' | 'archived';
     createdAt: Timestamp;
     archivedAt?: Timestamp;
@@ -46,6 +47,7 @@ export interface Routine {
     userId: string;
     name: string;
     context: HabitContext;
+    emoji?: string; // Nuevo: Emoji visual
     description?: string;
     steps: RoutineStep[];
     // Duración total estimada (calculada o manual)

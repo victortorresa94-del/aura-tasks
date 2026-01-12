@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Camera, Edit3, Trash2, Tag, Euro, ShoppingBag } from 'lucide-react';
+import { Plus, Search, Camera, Edit3, Trash2, Tag, Euro, ShoppingBag, X, ChevronDown } from 'lucide-react';
 import { Product } from '../../../types/nutrition';
 import { nutritionService } from '../../../services/nutritionService';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -128,51 +128,138 @@ export const ProductManager: React.FC = () => {
                 ))}
             </div>
 
-            {/* Modal */}
+            {/* Modal - Full Screen Mobile / Centered Desktop */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-md p-8 border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-2xl font-bold text-white mb-6">{editingProduct ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="fixed inset-0 z-[100] flex justify-center items-end sm:items-center sm:p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/90 backdrop-blur-md animate-fade-in"
+                        onClick={() => setIsModalOpen(false)}
+                    />
+
+                    {/* Modal Content */}
+                    <div className="relative w-full h-[100dvh] sm:h-auto sm:max-w-lg bg-[#121212] sm:rounded-3xl flex flex-col shadow-2xl animate-slide-up border border-white/10">
+
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">
                             <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Nombre</label>
-                                <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none focus:border-aura-accent" placeholder="Ej: Avituallamiento" autoFocus required />
+                                <h3 className="text-2xl font-bold text-white">
+                                    {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
+                                </h3>
+                                <p className="text-sm text-gray-400">Detalles del artículo</p>
                             </div>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-white"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Scrollable Form */}
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                            <div>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Nombre</label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white outline-none focus:border-aura-accent focus:bg-white/10 transition-all font-medium text-lg"
+                                    placeholder="Ej: Avena"
+                                    autoFocus
+                                    required
+                                />
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Categoría</label>
-                                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none">
-                                        <option value="General">General</option>
-                                        <option value="Frutas">Frutas</option>
-                                        <option value="Verduras">Verduras</option>
-                                        <option value="Carne">Carne</option>
-                                        <option value="Pescado">Pescado</option>
-                                        <option value="Lácteos">Lácteos</option>
-                                        <option value="Despensa">Despensa</option>
-                                        <option value="Limpieza">Limpieza</option>
-                                    </select>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Categoría</label>
+                                    <div className="relative">
+                                        <select
+                                            value={category}
+                                            onChange={e => setCategory(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white outline-none focus:border-aura-accent appearance-none transition-colors"
+                                        >
+                                            <option value="General">General</option>
+                                            <option value="Frutas">Frutas</option>
+                                            <option value="Verduras">Verduras</option>
+                                            <option value="Carne">Carne</option>
+                                            <option value="Pescado">Pescado</option>
+                                            <option value="Lácteos">Lácteos</option>
+                                            <option value="Despensa">Despensa</option>
+                                            <option value="Limpieza">Limpieza</option>
+                                            <option value="Higiene">Higiene</option>
+                                            <option value="Bebidas">Bebidas</option>
+                                            <option value="Snacks">Snacks</option>
+                                            <option value="Otros">Otros</option>
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Cant./Peso</label>
-                                    <input type="text" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none" placeholder="Ej: 1kg" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Supermercado</label>
-                                    <input type="text" value={supermarket} onChange={e => setSupermarket(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none" placeholder="Ej: Mercadona" />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Precio (€)</label>
-                                    <input type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none" placeholder="0.00" />
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Cant./Peso</label>
+                                    <input
+                                        type="text"
+                                        value={quantity}
+                                        onChange={e => setQuantity(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white outline-none focus:border-aura-accent"
+                                        placeholder="Ej: 500g"
+                                    />
                                 </div>
                             </div>
 
-                            <div className="flex gap-4 pt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors">Cancelar</button>
-                                <button type="submit" className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors">Guardar</button>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Supermercado</label>
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="text"
+                                            value={supermarket}
+                                            onChange={e => setSupermarket(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white outline-none focus:border-aura-accent"
+                                            placeholder="Mercadona"
+                                        />
+                                        <ShoppingBag size={16} className="absolute left-3 text-gray-500" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Precio (€)</label>
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={price}
+                                            onChange={e => setPrice(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white outline-none focus:border-aura-accent"
+                                            placeholder="0.00"
+                                        />
+                                        <span className="absolute left-3 text-gray-500 text-lg">€</span>
+                                    </div>
+                                </div>
                             </div>
                         </form>
+
+                        {/* Footer Actions */}
+                        <div className="p-6 border-t border-white/10 bg-[#121212] shrink-0 pb-safe">
+                            <div className="flex gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 py-4 text-gray-400 font-bold hover:bg-white/5 rounded-2xl transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={!name.trim()}
+                                    className="flex-1 py-4 bg-aura-accent text-black font-bold rounded-2xl hover:opacity-90 transition-all shadow-[0_0_20px_rgba(212,225,87,0.2)] disabled:opacity-50 disabled:shadow-none"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,30 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Check, Trash2, ShoppingBag, List, ChevronDown, FolderPlus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Check, Trash2, ShoppingBag, List, ChevronDown, FolderPlus, Grid, Tag, Wand2 } from 'lucide-react';
 import { ShoppingList as ShoppingListType, ShoppingItem } from '../../../types/nutrition';
 import { nutritionService } from '../../../services/nutritionService';
 import { useAuth } from '../../../contexts/AuthContext';
+
+const PREDEFINED_CATEGORIES = ['Frutas', 'Verduras', 'Carne', 'Pescado', 'Lácteos', 'Despensa', 'Congelados', 'Limpieza', 'Higiene', 'Bebidas', 'Snacks', 'Otros', 'General'];
+
+const SIMPLE_AI_MAP: Record<string, string> = {
+    'pollo': 'Carne', 'ternera': 'Carne', 'cerdo': 'Carne', 'hamburguesa': 'Carne', 'jamon': 'Carne',
+    'manzana': 'Frutas', 'platano': 'Frutas', 'naranja': 'Frutas', 'uva': 'Frutas', 'limon': 'Frutas',
+    'lechuga': 'Verduras', 'tomate': 'Verduras', 'cebolla': 'Verduras', 'patata': 'Verduras', 'zanahoria': 'Verduras',
+    'leche': 'Lácteos', 'yogur': 'Lácteos', 'queso': 'Lácteos', 'mantequilla': 'Lácteos',
+    'arroz': 'Despensa', 'pasta': 'Despensa', 'pan': 'Despensa', 'aceite': 'Despensa', 'huevos': 'Despensa',
+    'agua': 'Bebidas', 'cerveza': 'Bebidas', 'vino': 'Bebidas', 'cafe': 'Despensa',
+    'shampoo': 'Higiene', 'gel': 'Higiene', 'papel': 'Limpieza', 'lejia': 'Limpieza'
+};
 
 export const ShoppingList: React.FC = () => {
     const { user } = useAuth();
     const [lists, setLists] = useState<ShoppingListType[]>([]);
     const [activeListId, setActiveListId] = useState<string | null>(null);
     const [newItemName, setNewItemName] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('General');
     const [isCreatingList, setIsCreatingList] = useState(false);
     const [newListName, setNewListName] = useState('');
     const [showListSelector, setShowListSelector] = useState(false);
 
+    // AutoComplete
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [existingProducts, setExistingProducts] = useState<any[]>([]);
+
     useEffect(() => {
-        if (user) loadLists();
+        if (user) {
+            loadLists();
+            loadProducts();
+        }
     }, [user]);
+
+    const loadProducts = async () => {
+        if (!user) return;
+        const products = await nutritionService.getUserProducts(user.uid);
+        setExistingProducts(products);
+    };
 
     const loadLists = async () => {
         if (!user) return;
         const userLists = await nutritionService.getShoppingLists(user.uid);
-
-        // Ensure there is at least one list or handle empty state
         if (userLists.length > 0) {
             setLists(userLists);
-            // If no active list selected (or invalid), select the first one
             if (!activeListId || !userLists.find(l => l.id === activeListId)) {
                 setActiveListId(userLists[0].id);
             }
@@ -53,24 +77,50 @@ export const ShoppingList: React.FC = () => {
 
     const toggleItem = async (itemId: string, checked: boolean) => {
         if (!user || !activeList) return;
-
         const updatedItems = activeList.items.map(item =>
             item.id === itemId ? { ...item, checked } : item
         );
-
-        // Optimistic update
         const updatedList = { ...activeList, items: updatedItems };
         updateLocalList(updatedList);
-
         await nutritionService.createOrUpdateShoppingList(user.uid, updatedItems, activeList.id, activeList.name);
     };
 
-    const addItem = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const getSuggestedCategory = (name: string) => {
+        const lower = name.toLowerCase();
+        for (const [key, cat] of Object.entries(SIMPLE_AI_MAP)) {
+            if (lower.includes(key)) return cat;
+        }
+        return 'General';
+    };
+
+    const handleItemInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setNewItemName(val);
+
+        // AI Suggest Category
+        if (val.length > 2) {
+            const suggested = getSuggestedCategory(val);
+            if (suggested !== 'General') setSelectedCategory(suggested);
+
+            // Product Autocomplete
+            const matches = existingProducts.filter(p => p.name.toLowerCase().includes(val.toLowerCase())).slice(0, 3);
+            setSuggestions(matches);
+            setShowSuggestions(matches.length > 0);
+        } else {
+            setShowSuggestions(false);
+        }
+    };
+
+    const selectSuggestion = (product: any) => {
+        setNewItemName(product.name);
+        setSelectedCategory(product.category || 'General');
+        setShowSuggestions(false);
+    };
+
+    const addItem = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!user || !newItemName.trim()) return;
 
-        // If no list exists, create one handled by default or forcing user?
-        // Let's force creation if no list exists or create a default "General"
         let targetListId = activeListId;
         let targetListName = activeList?.name || 'Lista General';
 
@@ -86,32 +136,35 @@ export const ShoppingList: React.FC = () => {
             id: Date.now().toString(),
             name: newItemName,
             quantity: '1',
-            category: 'General',
+            category: selectedCategory,
             checked: false,
             source: 'manual'
         };
 
         const updatedItems = [...currentItems, newItem];
 
-        // Optimistic
         if (activeList) {
             updateLocalList({ ...activeList, items: updatedItems });
         }
         setNewItemName('');
+        setShowSuggestions(false);
+        setSelectedCategory('General'); // Reset
 
         // Server update
-        // FIX: Pass listId to update existing list!
         const savedList = await nutritionService.createOrUpdateShoppingList(user.uid, updatedItems, targetListId!, targetListName);
-
-        // Update state with server response to ensure sync
-        if (targetListId === savedList.id) {
-            updateLocalList(savedList);
-        }
+        if (targetListId === savedList.id) updateLocalList(savedList);
     };
 
     const deleteItem = async (itemId: string) => {
         if (!user || !activeList) return;
         const updatedItems = activeList.items.filter(i => i.id !== itemId);
+        updateLocalList({ ...activeList, items: updatedItems });
+        await nutritionService.createOrUpdateShoppingList(user.uid, updatedItems, activeList.id, activeList.name);
+    };
+
+    const updateItemCategory = async (itemId: string, newCategory: string) => {
+        if (!user || !activeList) return;
+        const updatedItems = activeList.items.map(i => i.id === itemId ? { ...i, category: newCategory } : i);
         updateLocalList({ ...activeList, items: updatedItems });
         await nutritionService.createOrUpdateShoppingList(user.uid, updatedItems, activeList.id, activeList.name);
     };
@@ -143,7 +196,7 @@ export const ShoppingList: React.FC = () => {
         <div className="space-y-6 pb-24">
             {/* List Selector Header */}
             <div className="flex items-center justify-between bg-aura-gray/20 p-4 rounded-2xl border border-white/5">
-                <div className="relative">
+                <div className="relative z-20">
                     <button
                         onClick={() => setShowListSelector(!showListSelector)}
                         className="flex items-center gap-2 font-bold text-lg text-white hover:text-aura-accent transition-colors"
@@ -152,7 +205,7 @@ export const ShoppingList: React.FC = () => {
                     </button>
 
                     {showListSelector && (
-                        <div className="absolute top-full left-0 mt-2 w-56 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden animate-fade-in">
+                        <div className="absolute top-full left-0 mt-2 w-64 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
                             {lists.map(list => (
                                 <button
                                     key={list.id}
@@ -183,15 +236,15 @@ export const ShoppingList: React.FC = () => {
 
             {/* Create List Modal */}
             {isCreatingList && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-[#1A1A1A] rounded-2xl p-6 w-full max-w-sm border border-white/10 shadow-xl">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-[#1A1A1A] rounded-2xl p-6 w-full max-w-sm border border-white/10 shadow-xl animate-scale-in">
                         <h3 className="text-lg font-bold text-white mb-4">Nueva Lista de Compra</h3>
                         <form onSubmit={createNewList} className="space-y-4">
                             <input
                                 type="text"
                                 value={newListName}
                                 onChange={e => setNewListName(e.target.value)}
-                                placeholder="Nombre de la lista (ej: Supermercado)"
+                                placeholder="Nombre (ej: Mercadona)"
                                 className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-aura-accent"
                                 autoFocus
                             />
@@ -207,8 +260,9 @@ export const ShoppingList: React.FC = () => {
             {/* Active List Content */}
             {activeList ? (
                 <>
-                    {/* Progress & Quick Add */}
-                    <div className="bg-aura-gray/20 p-5 rounded-3xl border border-white/5">
+                    {/* Add Item Form with Cat & Autocomplete */}
+                    <div className="bg-aura-gray/20 p-5 rounded-3xl border border-white/5 relative z-10">
+                        {/* Progress Bar */}
                         <div className="flex justify-between items-center mb-4">
                             <div className="h-2 flex-1 bg-black/50 rounded-full overflow-hidden mr-4">
                                 <div className="h-full bg-aura-accent transition-all duration-500 ease-out" style={{ width: `${progress}%` }}></div>
@@ -220,17 +274,52 @@ export const ShoppingList: React.FC = () => {
                             )}
                         </div>
 
-                        <form onSubmit={addItem} className="relative">
-                            <input
-                                type="text"
-                                value={newItemName}
-                                onChange={e => setNewItemName(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-white outline-none focus:border-aura-accent transition-colors"
-                                placeholder="Añadir producto..."
-                            />
-                            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-aura-accent text-black rounded-lg hover:bg-white transition-colors">
-                                <Plus size={16} />
-                            </button>
+                        <form onSubmit={addItem} className="flex gap-2 relative">
+                            {/* Custom Category Dropdown */}
+                            <div className="relative group min-w-[120px]">
+                                <div className="h-full">
+                                    <select
+                                        value={selectedCategory}
+                                        onChange={(e) => setSelectedCategory(e.target.value)}
+                                        className="appearance-none w-full h-full bg-black/40 border border-white/10 hover:border-aura-accent/50 rounded-xl pl-3 pr-8 text-xs font-bold uppercase tracking-wider text-aura-accent outline-none cursor-pointer transition-colors focus:border-aura-accent disabled:opacity-50"
+                                    >
+                                        {PREDEFINED_CATEGORIES.map(c => (
+                                            <option key={c} value={c} className="bg-[#1A1A1A] text-white py-2">{c}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div className="relative flex-1">
+                                <input
+                                    type="text"
+                                    value={newItemName}
+                                    onChange={handleItemInput}
+                                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-white outline-none focus:border-aura-accent transition-colors"
+                                    placeholder="Añadir producto..."
+                                />
+                                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-aura-accent text-black rounded-lg hover:bg-white transition-colors">
+                                    <Plus size={16} />
+                                </button>
+
+                                {/* Autocomplete Suggestions */}
+                                {showSuggestions && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-xl overflow-hidden z-30 max-h-48 overflow-y-auto custom-scrollbar">
+                                        {suggestions.map((p, idx) => (
+                                            <button
+                                                key={`${p.id}-${idx}`}
+                                                type="button"
+                                                onClick={() => selectSuggestion(p)}
+                                                className="w-full text-left px-4 py-3 hover:bg-white/5 flex justify-between items-center group border-b border-white/5 last:border-0"
+                                            >
+                                                <span className="text-white font-medium">{p.name}</span>
+                                                <span className="text-xs text-gray-500 group-hover:text-aura-accent bg-white/5 px-2 py-1 rounded-md">{p.category}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </form>
                     </div>
 
@@ -244,24 +333,43 @@ export const ShoppingList: React.FC = () => {
                         <div className="space-y-6">
                             {Object.entries(groupedItems).map(([category, items]) => (
                                 <div key={category} className="animate-fade-in-up">
-                                    <h3 className="text-xs font-bold text-aura-accent uppercase tracking-widest mb-3 pl-2">{category}</h3>
+                                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 pl-2 flex items-center gap-2">
+                                        <Tag size={12} /> {category}
+                                    </h3>
                                     <div className="space-y-2">
                                         {items.map(item => (
-                                            <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${item.checked ? 'bg-black/20 border-transparent opacity-50' : 'bg-aura-gray/30 border-white/5 hover:border-white/10'}`}>
+                                            <div key={item.id} className={`group flex items-center gap-3 p-3 rounded-xl border transition-all ${item.checked ? 'bg-black/20 border-transparent opacity-50' : 'bg-aura-gray/30 border-white/5 hover:border-white/10'}`}>
                                                 <button
                                                     onClick={() => toggleItem(item.id, !item.checked)}
-                                                    className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${item.checked ? 'bg-aura-accent border-aura-accent text-black' : 'border-gray-500 hover:border-white'}`}
+                                                    className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all shrink-0 ${item.checked ? 'bg-aura-accent border-aura-accent text-black' : 'border-gray-500 hover:border-white hover:border-aura-accent'}`}
                                                 >
                                                     {item.checked && <Check size={14} />}
                                                 </button>
-                                                <span className={`flex-1 font-medium ${item.checked ? 'line-through text-gray-500' : 'text-white'}`}>
-                                                    {item.name}
-                                                </span>
-                                                {item.quantity && item.quantity !== '1' && (
-                                                    <span className="text-xs text-gray-400 bg-white/5 px-2 py-1 rounded-md">{item.quantity}</span>
-                                                )}
-                                                <button onClick={() => deleteItem(item.id)} className="text-gray-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity">
-                                                    <Trash2 size={14} />
+
+                                                <div className="flex-1 min-w-0">
+                                                    <span className={`font-medium block truncate ${item.checked ? 'line-through text-gray-500' : 'text-white'}`}>
+                                                        {item.name}
+                                                    </span>
+                                                </div>
+
+                                                {/* Styled Mini Category Switcher */}
+                                                <div className="relative group/cat shrink-0">
+                                                    <div className="flex items-center gap-1 hover:bg-white/5 px-2 py-1 rounded-lg transition-colors cursor-pointer">
+                                                        <select
+                                                            value={item.category || 'General'}
+                                                            onChange={(e) => updateItemCategory(item.id, e.target.value)}
+                                                            className="appearance-none bg-transparent text-[10px] text-gray-500 font-bold uppercase outline-none cursor-pointer hover:text-aura-accent w-full pr-3 text-right"
+                                                        >
+                                                            {PREDEFINED_CATEGORIES.map(c => (
+                                                                <option key={c} value={c} className="bg-[#1A1A1A] text-white">{c}</option>
+                                                            ))}
+                                                        </select>
+                                                        <ChevronDown size={10} className="text-gray-600 absolute right-2 pointer-events-none" />
+                                                    </div>
+                                                </div>
+
+                                                <button onClick={() => deleteItem(item.id)} className="text-gray-600 hover:text-red-400 p-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         ))}

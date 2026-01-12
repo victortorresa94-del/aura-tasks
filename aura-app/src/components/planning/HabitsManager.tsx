@@ -32,6 +32,8 @@ export const HabitsManager: React.FC = () => {
     const archivedHabits = habits.filter(h => h.status === 'archived');
     const displayedHabits = showArchived ? archivedHabits : activeHabits;
 
+    const [emoji, setEmoji] = useState('✨');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || isSubmitting) return;
@@ -40,11 +42,11 @@ export const HabitsManager: React.FC = () => {
         try {
             if (editingHabit) {
                 await habitService.updateHabit(editingHabit.id, {
-                    name, intention, rhythm, context: context as any
+                    name, intention, rhythm, context: context as any, emoji
                 });
             } else {
                 await habitService.createHabit(user.uid, {
-                    name, intention, rhythm, context: context as any
+                    name, intention, rhythm, context: context as any, emoji
                 });
             }
             setIsModalOpen(false);
@@ -68,6 +70,7 @@ export const HabitsManager: React.FC = () => {
         setIntention(habit.intention || '');
         setRhythm(habit.rhythm || '');
         setContext(habit.context);
+        setEmoji(habit.emoji || '✨');
         setIsModalOpen(true);
     };
 
@@ -77,6 +80,15 @@ export const HabitsManager: React.FC = () => {
         setIntention('');
         setRhythm('');
         setContext('mañana');
+        setEmoji('✨');
+        setIsSubmitting(false); // Ensure reset clears loading state just in case
+    };
+
+    const handleEmojiClick = () => {
+        // Simple cycler for now, or just a prompt
+        const emojis = ['✨', '💪', '🧘', '💧', '🍎', '📚', '💤', '🏃', '🧠', '💼', '🪴'];
+        const currentIdx = emojis.indexOf(emoji);
+        setEmoji(emojis[(currentIdx + 1) % emojis.length]);
     };
 
     return (
@@ -110,19 +122,25 @@ export const HabitsManager: React.FC = () => {
             ) : (
                 <div className="grid gap-4">
                     {displayedHabits.map(habit => (
-                        <div key={habit.id} className="bg-aura-gray/30 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all group">
+                        <div key={habit.id} className="bg-aura-gray/30 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 text-4xl pointer-events-none">
+                                {habit.emoji}
+                            </div>
                             <div className="flex justify-between items-start">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
                                         <span className="text-xs font-bold uppercase tracking-wider text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{habit.context}</span>
                                         {habit.rhythm && <span className="text-xs text-gray-400">{habit.rhythm}</span>}
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-1">{habit.name}</h3>
+                                    <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                                        <span>{habit.emoji}</span>
+                                        {habit.name}
+                                    </h3>
                                     {habit.intention && (
                                         <p className="text-gray-400 text-sm italic">"{habit.intention}"</p>
                                     )}
                                 </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button onClick={() => handleEdit(habit)} className="p-2 text-gray-400 hover:text-white bg-black/20 rounded-lg hover:bg-black/40">
                                         <Edit3 size={16} />
                                     </button>
@@ -138,26 +156,42 @@ export const HabitsManager: React.FC = () => {
                 </div>
             )}
 
-            {/* Modal Crear/Editar */}
+            {/* Modal Crear/Editar - Mobile Bottom Sheet style */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-md p-6 md:p-8 border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
+
+                    <div className="relative w-full sm:max-w-md bg-[#1A1A1A] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 border-t sm:border border-white/10 shadow-2xl max-h-[85vh] overflow-y-auto animate-slide-up ring-1 ring-white/10">
+                        {/* Mobile Drag Handle */}
+                        <div className="w-full flex justify-center mb-4 sm:hidden">
+                            <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+                        </div>
+
                         <h3 className="text-2xl font-bold text-white mb-6">
                             {editingHabit ? 'Editar Hábito' : 'Nuevo Hábito'}
                         </h3>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Nombre</label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="w-full bg-black/30 border-b-2 border-white/10 focus:border-aura-accent py-3 text-lg text-white outline-none transition-colors"
-                                    placeholder="Ej: Leer antes de dormir"
-                                    autoFocus
-                                    required
-                                />
+                            <div className="flex gap-4">
+                                <button
+                                    type="button"
+                                    onClick={handleEmojiClick}
+                                    className="w-16 h-16 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center text-3xl hover:bg-white/5 transition-colors"
+                                >
+                                    {emoji}
+                                </button>
+                                <div className="flex-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Nombre</label>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        className="w-full bg-black/30 border-b-2 border-white/10 focus:border-aura-accent py-3 text-lg text-white outline-none transition-colors"
+                                        placeholder="Ej: Leer antes de dormir"
+                                        autoFocus
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             <div>
@@ -178,7 +212,7 @@ export const HabitsManager: React.FC = () => {
                                         value={rhythm}
                                         onChange={e => setRhythm(e.target.value)}
                                         className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none focus:border-aura-accent"
-                                        placeholder="Ej: 3 veces por semana"
+                                        placeholder="Ej: Diario"
                                     />
                                 </div>
                                 <div>
@@ -200,8 +234,12 @@ export const HabitsManager: React.FC = () => {
                             </div>
 
                             <div className="flex gap-4 pt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50">Cancelar</button>
-                                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors shadow-lg shadow-aura-accent/20 disabled:opacity-50 flex justify-center">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
+                                {/* Cancel button never disabled to prevent stuck state */}
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors">Cancelar</button>
+                                <button type="submit" disabled={!name.trim() || isSubmitting} className="flex-1 py-3 bg-aura-accent hover:bg-white text-black font-bold rounded-xl transition-colors shadow-lg shadow-aura-accent/20 disabled:opacity-50 flex justify-center items-center gap-2">
+                                    {isSubmitting && <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                                    {isSubmitting ? 'Guardando...' : 'Guardar'}
+                                </button>
                             </div>
                         </form>
                     </div>
