@@ -3,6 +3,7 @@ import { Plus, Search, Camera, Edit3, Trash2, Tag, Euro, ShoppingBag, X, Chevron
 import { Product } from '../../../types/nutrition';
 import { nutritionService } from '../../../services/nutritionService';
 import { useAuth } from '../../../contexts/AuthContext';
+import { OCRScanner } from './OCRScanner';
 
 export const ProductManager: React.FC = () => {
     const { user } = useAuth();
@@ -10,6 +11,7 @@ export const ProductManager: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showScanner, setShowScanner] = useState(false);
 
     // Form State
     const [name, setName] = useState('');
@@ -76,6 +78,17 @@ export const ProductManager: React.FC = () => {
         setQuantity('');
     };
 
+    const handleScanComplete = (data: Partial<Product>) => {
+        // Populate form with scanned data
+        if (data.name) setName(data.name);
+        if (data.category) setCategory(data.category);
+        if (data.supermarket) setSupermarket(data.supermarket);
+        if (data.price) setPrice(data.price.toString());
+        if (data.quantity) setQuantity(data.quantity);
+        setShowScanner(false);
+        setIsModalOpen(true); // Open the modal to save the scanned product
+    };
+
     return (
         <div className="space-y-6 animate-fade-in-up">
             {/* Header */}
@@ -91,7 +104,11 @@ export const ProductManager: React.FC = () => {
                     />
                 </div>
                 <div className="flex gap-2">
-                    <button className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors" title="Escanear (Coming Soon)">
+                    <button
+                        onClick={() => setShowScanner(true)}
+                        className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
+                        title="Escanear Producto"
+                    >
                         <Camera size={20} />
                     </button>
                     <button
@@ -127,6 +144,15 @@ export const ProductManager: React.FC = () => {
                     </div>
                 ))}
             </div>
+
+            {/* Scanner */}
+            {showScanner && (
+                <OCRScanner
+                    mode="product"
+                    onClose={() => setShowScanner(false)}
+                    onScanComplete={handleScanComplete}
+                />
+            )}
 
             {/* Modal - Full Screen Mobile / Centered Desktop */}
             {isModalOpen && (

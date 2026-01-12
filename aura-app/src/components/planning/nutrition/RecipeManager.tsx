@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit3, Trash2, ChefHat, Euro, List, X } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, ChefHat, Euro, List, X, Camera } from 'lucide-react';
 import { Recipe, Product, Ingredient } from '../../../types/nutrition';
 import { nutritionService } from '../../../services/nutritionService';
 import { useAuth } from '../../../contexts/AuthContext';
+import { OCRScanner } from './OCRScanner';
 
 export const RecipeManager: React.FC = () => {
     const { user } = useAuth();
@@ -11,6 +12,7 @@ export const RecipeManager: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showScanner, setShowScanner] = useState(false);
 
     // Form State
     const [name, setName] = useState('');
@@ -114,6 +116,27 @@ export const RecipeManager: React.FC = () => {
         setIngredients(ingredients.filter(i => i.id !== id));
     };
 
+    const handleScanComplete = (data: any) => {
+        setIsModalOpen(true);
+        setEditingRecipe(null); // Ensure it's new
+
+        if (data.name) setName(data.name);
+        if (data.ingredients && Array.isArray(data.ingredients)) {
+            const newIngredients = data.ingredients.map((ingText: string) => ({
+                id: Date.now().toString() + Math.random(),
+                name: ingText,
+                quantity: '1' // Default quantity
+            }));
+            setIngredients(newIngredients);
+        }
+        if (data.instructions && Array.isArray(data.instructions)) {
+            setInstructions(data.instructions.join('\n'));
+        }
+        if (data.portions) setPortions(data.portions);
+
+        setShowScanner(false);
+    };
+
     // Detail View State
     const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
 
@@ -131,12 +154,21 @@ export const RecipeManager: React.FC = () => {
                         className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white outline-none focus:border-aura-accent"
                     />
                 </div>
-                <button
-                    onClick={openNew}
-                    className="bg-aura-accent text-aura-black px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:opacity-90"
-                >
-                    <Plus size={18} /> Nueva
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowScanner(true)}
+                        className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
+                        title="Escanear Receta"
+                    >
+                        <Camera size={20} />
+                    </button>
+                    <button
+                        onClick={openNew}
+                        className="bg-aura-accent text-aura-black px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:opacity-90"
+                    >
+                        <Plus size={18} /> Nueva
+                    </button>
+                </div>
             </div>
 
             {/* Grid */}
@@ -330,6 +362,15 @@ export const RecipeManager: React.FC = () => {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Scanner */}
+            {showScanner && (
+                <OCRScanner
+                    mode="recipe"
+                    onClose={() => setShowScanner(false)}
+                    onScanComplete={handleScanComplete}
+                />
             )}
         </div>
     );
