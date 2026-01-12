@@ -156,8 +156,18 @@ export default function App() {
 
   const handleAddTask = async (text: string | Task, eventDate?: string) => {
     if (typeof text === 'object') {
-      await tasksRepo.create(user.id, text);
-      showToast("Tarea creada");
+      try {
+        await tasksRepo.create(user.id, text);
+        showToast("Tarea creada");
+      } catch (error: any) {
+        console.error("Error creating task:", error);
+        if (error.code === 'unavailable' || error.message.includes('offline')) {
+          showToast("Guardado sin conexión (se sincronizará luego)");
+          // Optionally add to a local queue or optimistic update if not handled by repo
+        } else {
+          showToast("Error al crear tarea");
+        }
+      }
       return;
     }
     if (!text.trim()) return;
@@ -175,19 +185,30 @@ export default function App() {
       type: p.type || 'normal',
       listId: p.listId || '1',
       tags: [],
-      eventDate: eventDate || p.eventDate,
+      eventDate: eventDate || p.eventDate || null,
       links: [],
       ...p
     }));
 
-    await tasksRepo.batchCreate(user.id, newTasks);
-    setQuickAddText('');
-    setIsQuickAdding(false);
+    try {
+      await tasksRepo.batchCreate(user.id, newTasks);
+      setQuickAddText('');
+      setIsQuickAdding(false);
 
-    if (newTasks.length > 0) {
-      const t = newTasks[0];
-      const dateMsg = t.date === new Date().toISOString().split('T')[0] ? "para hoy" : `para ${new Date(t.date).toLocaleDateString('es-ES', { weekday: 'long' })}`;
-      showToast(`Tarea programada ${dateMsg}`);
+      if (newTasks.length > 0) {
+        const t = newTasks[0];
+        const dateMsg = t.date === new Date().toISOString().split('T')[0] ? "para hoy" : `para ${new Date(t.date).toLocaleDateString('es-ES', { weekday: 'long' })}`;
+        showToast(`Tarea programada ${dateMsg}`);
+      }
+    } catch (error: any) {
+      console.error("Error creating task (Quick Add):", error);
+      if (error.code === 'unavailable' || error.message.includes('offline')) {
+        showToast("Guardado sin conexión");
+        setQuickAddText('');
+        setIsQuickAdding(false);
+      } else {
+        showToast("Error al crear tarea");
+      }
     }
   };
 

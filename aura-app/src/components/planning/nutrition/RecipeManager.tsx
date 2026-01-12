@@ -249,7 +249,7 @@ export const RecipeManager: React.FC = () => {
                 <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
                     <div className="absolute inset-0 bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setIsModalOpen(false)} />
 
-                    <div className="relative w-full sm:max-w-2xl bg-[#1A1A1A] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 border-t sm:border border-white/10 shadow-2xl max-h-[90vh] h-[90vh] sm:h-auto flex flex-col animate-slide-up ring-1 ring-white/10">
+                    <div className="relative w-full sm:max-w-2xl bg-[#1A1A1A] rounded-t-3xl sm:rounded-3xl p-6 md:p-8 border-t sm:border border-white/10 shadow-2xl max-h-[90vh] h-auto flex flex-col animate-slide-up ring-1 ring-white/10">
                         <div className="w-full flex justify-center mb-4 sm:hidden shrink-0">
                             <div className="w-12 h-1.5 bg-white/20 rounded-full" />
                         </div>
@@ -261,7 +261,7 @@ export const RecipeManager: React.FC = () => {
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="col-span-2">
                                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Nombre</label>
-                                        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-black/30 border-b border-white/10 py-2 text-white outline-none focus:border-aura-accent" placeholder="Pasta con tomate" required />
+                                        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-black/60 border-b border-white/20 py-3 px-2 text-white outline-none focus:border-aura-accent text-lg font-medium" placeholder="Pasta con tomate" required />
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">Raciones</label>

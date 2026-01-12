@@ -137,22 +137,25 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
   return (
     <div className="h-full flex flex-col p-4 md:p-8 space-y-6 overflow-hidden relative bg-aura-black text-aura-white">
       {/* Top Navigation */}
-      <div className="flex gap-4 border-b border-white/5 overflow-x-auto no-scrollbar shrink-0">
-        {[
-          { id: 'calendar', label: 'Calendario', icon: <CalendarIcon size={16} /> },
-          { id: 'finance', label: 'Finanzas', icon: <Wallet size={16} /> },
-          { id: 'habits', label: 'Hábitos', icon: <Repeat size={16} /> },
-          { id: 'routines', label: 'Rutinas', icon: <Clock size={16} /> },
-          { id: 'nutrition', label: 'Nutrición', icon: <Apple size={16} /> },
-          { id: 'projects', label: 'Proyectos', icon: <Target size={16} /> },
-        ].map(tab => (
-          <button
-            key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 py-3 px-4 text-sm font-bold whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id ? 'border-aura-accent text-aura-accent' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
+      <div className="relative border-b border-white/5 shrink-0">
+        <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12">
+          {[
+            { id: 'calendar', label: 'Calendario', icon: <CalendarIcon size={16} /> },
+            { id: 'finance', label: 'Finanzas', icon: <Wallet size={16} /> },
+            { id: 'habits', label: 'Hábitos', icon: <Repeat size={16} /> },
+            { id: 'routines', label: 'Rutinas', icon: <Clock size={16} /> },
+            { id: 'nutrition', label: 'Nutrición', icon: <Apple size={16} /> },
+            { id: 'projects', label: 'Proyectos', icon: <Target size={16} /> },
+          ].map(tab => (
+            <button
+              key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 py-3 px-4 text-sm font-bold whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id ? 'border-aura-accent text-aura-accent' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-aura-black to-transparent pointer-events-none md:hidden" />
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">

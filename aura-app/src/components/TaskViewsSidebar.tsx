@@ -28,6 +28,9 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
 
     const handleNavigation = (viewId: string) => {
         setView(viewId);
+        if (window.innerWidth < 1024) {
+            onClose();
+        }
     };
 
     const handleCreateView = () => {
@@ -39,7 +42,10 @@ const TaskViewsSidebar: React.FC<TaskViewsSidebarProps> = ({
             icon: '⚡',
             layout: 'list',
             groupBy: 'none',
-            filters: {}
+            filters: {},
+            ownerId: '', // Will be set by repo
+            createdAt: Date.now(),
+            updatedAt: Date.now()
         };
         onCreateView(newView);
         setIsCreatingView(false);

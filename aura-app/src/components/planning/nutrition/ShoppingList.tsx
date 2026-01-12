@@ -151,8 +151,13 @@ export const ShoppingList: React.FC = () => {
         setSelectedCategory('General'); // Reset
 
         // Server update
-        const savedList = await nutritionService.createOrUpdateShoppingList(user.uid, updatedItems, targetListId!, targetListName);
-        if (targetListId === savedList.id) updateLocalList(savedList);
+        try {
+            const savedList = await nutritionService.createOrUpdateShoppingList(user.uid, updatedItems, targetListId!, targetListName);
+            if (targetListId === savedList.id) updateLocalList(savedList);
+        } catch (error) {
+            console.error("Failed to save shopping list item:", error);
+            // Optionally revert local state here if strict consistency is needed
+        }
     };
 
     const deleteItem = async (itemId: string) => {
