@@ -102,9 +102,11 @@ const TasksView: React.FC<TasksViewProps> = ({
       else if (standardViewConfig) current = (standardViewConfig.filters as any)[type] || [];
       const exists = current.includes(value);
       const newVal = exists ? current.filter((v: any) => v !== value) : [...current, value];
-      if (customViewData && onUpdateView) onUpdateView({ ...customViewData, filters: { ...customViewData.filters, [type]: newVal } });
-      else if (isStandardView && standardViewConfig) {
-         const updated = { ...standardViewConfig, filters: { ...standardViewConfig.filters, [type]: newVal } };
+      if (customViewData && onUpdateView) {
+         onUpdateView({ ...customViewData, filters: { ...customViewData.filters, [type]: newVal } });
+      } else if (isStandardView && standardViewConfig) {
+         const currentFilters = standardViewConfig.filters || {};
+         const updated = { ...standardViewConfig, filters: { ...currentFilters, [type]: newVal } };
          saveViewConfig(currentView, updated);
          setStandardViewConfig(updated);
       }
