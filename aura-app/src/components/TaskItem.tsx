@@ -298,6 +298,10 @@ const TaskItem: React.FC<TaskItemProps> = ({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             onToggle(task.id);
           }}
           className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all z-20 ${isCompleted ? 'bg-aura-accent border-aura-accent text-aura-black' : 'border-gray-500 hover:border-aura-accent hover:bg-white/5'}`}

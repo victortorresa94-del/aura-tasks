@@ -240,15 +240,15 @@ const TasksView: React.FC<TasksViewProps> = ({
 
             {/* Group By */}
             <div className="relative shrink-0">
-               <button onClick={() => toggleMenu('group')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveGroupBy !== 'none' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+               <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); toggleMenu('group'); }} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveGroupBy !== 'none' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                   <Layers size={14} /> <span className="hidden sm:inline">Agrupar</span>
                </button>
                {openMenu === 'group' && (
                   <>
-                     <div className="fixed inset-0 z-50" onClick={() => setOpenMenu(null)} />
+                     <div className="fixed inset-0 z-50 cursor-default" onMouseDown={() => setOpenMenu(null)} />
                      <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-48 z-[60] animate-fade-in-up">
                         {['none', 'status', 'priority', 'project', 'timeframe'].map(g => (
-                           <button key={g} onClick={() => { handleUpdateConfig('groupBy', g); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveGroupBy === g ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+                           <button key={g} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleUpdateConfig('groupBy', g); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveGroupBy === g ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
                               <span className="capitalize">{g === 'none' ? 'Sin agrupar' : g === 'timeframe' ? 'Tiempo aprox.' : g}</span>
                               {effectiveGroupBy === g && <CheckCircle size={12} className="text-aura-accent" />}
                            </button>
@@ -260,15 +260,15 @@ const TasksView: React.FC<TasksViewProps> = ({
 
             {/* Sort By */}
             <div className="relative shrink-0">
-               <button onClick={() => toggleMenu('sort')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveSortBy !== 'date' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+               <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); toggleMenu('sort'); }} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveSortBy !== 'date' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                   <ArrowUpDown size={14} /> <span className="hidden sm:inline">Ordenar</span>
                </button>
                {openMenu === 'sort' && (
                   <>
-                     <div className="fixed inset-0 z-50" onClick={() => setOpenMenu(null)} />
+                     <div className="fixed inset-0 z-50 cursor-default" onMouseDown={() => setOpenMenu(null)} />
                      <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-40 z-[60] animate-fade-in-up">
                         {['date', 'priority', 'title'].map(s => (
-                           <button key={s} onClick={() => { handleUpdateConfig('sortBy', s); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveSortBy === s ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+                           <button key={s} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleUpdateConfig('sortBy', s); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveSortBy === s ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
                               <span className="capitalize">{s}</span>
                               {effectiveSortBy === s && <CheckCircle size={12} className="text-aura-accent" />}
                            </button>
@@ -280,24 +280,24 @@ const TasksView: React.FC<TasksViewProps> = ({
 
             {/* Filter */}
             <div className="relative shrink-0">
-               <button onClick={() => toggleMenu('filter')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${activeFiltersCount > 0 ? 'bg-aura-accent text-aura-black ring-1 ring-aura-accent' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+               <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); toggleMenu('filter'); }} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${activeFiltersCount > 0 ? 'bg-aura-accent text-aura-black ring-1 ring-aura-accent' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                   <Filter size={14} /> {activeFiltersCount > 0 && <span className="text-[10px]">{activeFiltersCount}</span>}
                </button>
                {openMenu === 'filter' && (
                   <>
-                     <div className="fixed inset-0 z-50" onClick={() => setOpenMenu(null)} />
+                     <div className="fixed inset-0 z-50 cursor-default" onMouseDown={() => setOpenMenu(null)} />
                      <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-3 w-64 z-[60] animate-fade-in-up">
                         <div className="space-y-3">
                            <div>
                               <h6 className="text-[10px] uppercase font-bold text-gray-500 mb-1">Prioridad</h6>
                               <div className="flex gap-1">{['alta', 'media', 'baja'].map(p => (
-                                 <button key={p} onClick={() => toggleFilter('priority', p)} className={`flex-1 py-1 rounded text-[10px] uppercase font-bold border ${effectiveFilters.priority?.includes(p as any) ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}>{p}</button>
+                                 <button key={p} onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleFilter('priority', p); }} className={`flex-1 py-1 rounded text-[10px] uppercase font-bold border ${effectiveFilters.priority?.includes(p as any) ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}>{p}</button>
                               ))}</div>
                            </div>
                            <div>
                               <h6 className="text-[10px] uppercase font-bold text-gray-500 mb-1">Estado</h6>
                               <div className="space-y-0.5">{statuses.map(s => (
-                                 <button key={s.id} onClick={() => toggleFilter('status', s.id)} className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs ${effectiveFilters.status?.includes(s.id) ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'}`}>
+                                 <button key={s.id} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); toggleFilter('status', s.id); }} className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs ${effectiveFilters.status?.includes(s.id) ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'}`}>
                                     <div className={`w-2 h-2 rounded-full ${s.color}`}></div> {s.name}
                                  </button>
                               ))}</div>
