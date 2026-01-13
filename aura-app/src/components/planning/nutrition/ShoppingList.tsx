@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Check, Trash2, ShoppingBag, List, ChevronDown, FolderPlus, Grid, Tag, Wand2 } from 'lucide-react';
+import { Plus, Check, Trash2, ShoppingBag, List, ChevronDown, FolderPlus, Grid, Tag, Wand2, Loader } from 'lucide-react';
 import { ShoppingList as ShoppingListType, ShoppingItem } from '../../../types/nutrition';
 import { nutritionService } from '../../../services/nutritionService';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -25,6 +26,7 @@ export const ShoppingList: React.FC = () => {
     const [isCreatingList, setIsCreatingList] = useState(false);
     const [newListName, setNewListName] = useState('');
     const [showListSelector, setShowListSelector] = useState(false);
+    const [loadingCreate, setLoadingCreate] = useState(false);
 
     // AutoComplete
     const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -64,6 +66,7 @@ export const ShoppingList: React.FC = () => {
         e.preventDefault();
         if (!user || !newListName.trim()) return;
 
+        setLoadingCreate(true);
         try {
             const newList = await nutritionService.createOrUpdateShoppingList(user.uid, [], undefined, newListName);
             setLists([...lists, newList]);
@@ -72,6 +75,8 @@ export const ShoppingList: React.FC = () => {
             setIsCreatingList(false);
         } catch (error) {
             console.error("Error creating list:", error);
+        } finally {
+            setLoadingCreate(false);
         }
     };
 
@@ -210,24 +215,33 @@ export const ShoppingList: React.FC = () => {
                     </button>
 
                     {showListSelector && (
-                        <div className="absolute top-full left-0 mt-2 w-64 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
-                            {lists.map(list => (
-                                <button
-                                    key={list.id}
-                                    onClick={() => { setActiveListId(list.id); setShowListSelector(false); }}
-                                    className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-white/5 flex justify-between items-center ${activeListId === list.id ? 'text-aura-accent bg-white/5' : 'text-gray-400'}`}
-                                >
-                                    {list.name}
-                                    {activeListId === list.id && <Check size={14} />}
-                                </button>
-                            ))}
-                            <div className="border-t border-white/10 p-2">
-                                <button
-                                    onClick={() => { setIsCreatingList(true); setShowListSelector(false); }}
-                                    className="w-full flex items-center gap-2 text-xs font-bold text-aura-accent hover:bg-aura-accent/10 p-2 rounded-lg transition-colors"
-                                >
-                                    <Plus size={14} /> Nueva Lista
-                                </button>
+                        <div className="fixed inset-0 z-[60] flex justify-center items-end sm:items-center sm:p-4">
+                            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowListSelector(false)} />
+                            <div className="relative w-full bg-[#1A1A1A] rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm border-t sm:border border-white/10 shadow-xl animate-slide-up pb-safe flex flex-col max-h-[80vh]">
+                                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden shrink-0" />
+                                <h3 className="text-lg font-bold text-white mb-4 shrink-0">Mis Listas</h3>
+
+                                <div className="overflow-y-auto custom-scrollbar flex-1 space-y-1 -mx-2 px-2">
+                                    {lists.map(list => (
+                                        <button
+                                            key={list.id}
+                                            onClick={() => { setActiveListId(list.id); setShowListSelector(false); }}
+                                            className={`w-full text-left px-4 py-3 text-sm font-medium rounded-xl hover:bg-white/5 flex justify-between items-center transition-colors ${activeListId === list.id ? 'text-aura-accent bg-white/5 border border-aura-accent/20' : 'text-gray-400 border border-transparent'}`}
+                                        >
+                                            {list.name}
+                                            {activeListId === list.id && <Check size={14} />}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="border-t border-white/10 pt-4 mt-4 shrink-0">
+                                    <button
+                                        onClick={() => { setIsCreatingList(true); setShowListSelector(false); }}
+                                        className="w-full flex items-center justify-center gap-2 text-sm font-bold bg-aura-accent text-black p-3 rounded-xl hover:opacity-90 transition-opacity"
+                                    >
+                                        <Plus size={16} /> Nueva Lista
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -241,8 +255,10 @@ export const ShoppingList: React.FC = () => {
 
             {/* Create List Modal */}
             {isCreatingList && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-[#1A1A1A] rounded-2xl p-6 w-full max-w-sm border border-white/10 shadow-xl animate-scale-in">
+                <div className="fixed inset-0 z-[60] flex justify-center items-end sm:items-center sm:p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => !loadingCreate && setIsCreatingList(false)} />
+                    <div className="relative w-full bg-[#1A1A1A] rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm border-t sm:border border-white/10 shadow-xl animate-slide-up pb-safe">
+                        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden" />
                         <h3 className="text-lg font-bold text-white mb-4">Nueva Lista de Compra</h3>
                         <form onSubmit={createNewList} className="space-y-4">
                             <input
@@ -250,12 +266,15 @@ export const ShoppingList: React.FC = () => {
                                 value={newListName}
                                 onChange={e => setNewListName(e.target.value)}
                                 placeholder="Nombre (ej: Mercadona)"
-                                className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-aura-accent"
+                                className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-aura-accent text-lg"
                                 autoFocus
+                                disabled={loadingCreate}
                             />
-                            <div className="flex gap-3">
-                                <button type="button" onClick={() => setIsCreatingList(false)} className="flex-1 py-2 text-gray-400 font-bold hover:bg-white/5 rounded-lg">Cancelar</button>
-                                <button type="submit" disabled={!newListName.trim()} className="flex-1 py-2 bg-aura-accent text-black font-bold rounded-lg hover:opacity-90 disabled:opacity-50">Crear</button>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setIsCreatingList(false)} disabled={loadingCreate} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl disabled:opacity-50">Cancelar</button>
+                                <button type="submit" disabled={!newListName.trim() || loadingCreate} className="flex-1 py-3 bg-aura-accent text-black font-bold rounded-xl hover:opacity-90 disabled:opacity-50 shadow-lg shadow-aura-accent/20 flex items-center justify-center gap-2">
+                                    {loadingCreate ? <Loader size={18} className="animate-spin" /> : 'Crear'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -266,7 +285,7 @@ export const ShoppingList: React.FC = () => {
             {activeList ? (
                 <>
                     {/* Add Item Form with Cat & Autocomplete */}
-                    <div className="bg-aura-gray/20 p-5 rounded-3xl border border-white/5 relative z-10">
+                    <div className="bg-aura-gray/20 p-5 rounded-3xl border border-white/10 relative z-10 shadow-sm">
                         {/* Progress Bar */}
                         <div className="flex justify-between items-center mb-4">
                             <div className="h-2 flex-1 bg-black/50 rounded-full overflow-hidden mr-4">

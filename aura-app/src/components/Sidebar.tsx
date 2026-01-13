@@ -66,19 +66,28 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleSectionChange = (sectionId: string) => {
+    // If switching TO this section, force Open. If already active, Toggle.
+    const isNewSection = activeSection !== sectionId;
+
     setActiveSection(sectionId);
-    // Toggle task views sidebar when clicking Tasks
+
     if (sectionId === 'tasks') {
-      setShowTaskViewsSidebar?.(prev => !prev);
+      if (isNewSection) setShowTaskViewsSidebar?.(true);
+      else setShowTaskViewsSidebar?.(prev => !prev);
+
       setShowProjectsSidebar?.(false);
     } else if (sectionId === 'projects') {
-      setShowProjectsSidebar?.(prev => !prev);
+      if (isNewSection) setShowProjectsSidebar?.(true);
+      else setShowProjectsSidebar?.(prev => !prev);
+
       setShowTaskViewsSidebar?.(false);
       setView('proyectos');
     } else {
       setShowTaskViewsSidebar?.(false);
       setShowProjectsSidebar?.(false);
     }
+
+    // On mobile, close main sidebar after selection
     if (window.innerWidth < 1024) setShowMenu(false);
   };
 
@@ -146,7 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Content */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-72 bg-aura-black border-r border-aura-gray/30 
+        fixed lg:static inset-y-0 left-0 z-[70] w-72 bg-aura-black border-r border-aura-gray/30 
         transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl lg:shadow-none
         ${showMenu ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>

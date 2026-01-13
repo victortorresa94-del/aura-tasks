@@ -14,7 +14,10 @@ interface SettingsModalProps {
   onClose: () => void;
   onUpdateUser: (user: UserType) => void;
   statuses?: TaskStatus[];
-  setStatuses?: React.Dispatch<React.SetStateAction<TaskStatus[]>>;
+  // setStatuses?: ... REMOVED
+  onCreateStatus?: (status: TaskStatus) => void;
+  onUpdateStatus?: (id: string, updates: Partial<TaskStatus>) => void;
+  onDeleteStatus?: (id: string) => void;
 }
 
 const COLORS = [
@@ -23,7 +26,7 @@ const COLORS = [
   'bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-pink-500'
 ];
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ user, isOpen, onClose, onUpdateUser, statuses, setStatuses }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ user, isOpen, onClose, onUpdateUser, statuses, onCreateStatus, onUpdateStatus, onDeleteStatus }) => {
   const { user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'statuses' | 'data'>('profile');
   const [formData, setFormData] = useState<UserType>(user);
@@ -98,27 +101,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ user, isOpen, onClose, on
   };
 
   const handleAddStatus = () => {
-    if (!setStatuses || !statuses) return;
+    if (!onCreateStatus || !statuses) return;
     const newStatus: TaskStatus = {
       id: Date.now().toString(),
       name: 'Nuevo Estado',
       color: 'bg-gray-400',
-      isCompleted: false
+      isCompleted: false,
+      ownerId: user.id || 'guest', createdAt: Date.now(), updatedAt: Date.now() // Repo handles this but we provide full object
     };
-    setStatuses([...statuses, newStatus]);
+    onCreateStatus(newStatus);
   };
 
   const handleDeleteStatus = (id: string) => {
-    if (!setStatuses || !statuses) return;
+    if (!onDeleteStatus || !statuses) return;
     if (statuses.length <= 1) return alert("Debes tener al menos un estado.");
     if (confirm("¿Eliminar estado? Las tareas en este estado podrían quedar huérfanas.")) {
-      setStatuses(statuses.filter(s => s.id !== id));
+      onDeleteStatus(id);
     }
   };
 
   const updateStatus = (id: string, updates: Partial<TaskStatus>) => {
-    if (!setStatuses || !statuses) return;
-    setStatuses(statuses.map(s => s.id === id ? { ...s, ...updates } : s));
+    if (!onUpdateStatus) return;
+    onUpdateStatus(id, updates);
   };
 
   const handleExport = () => {

@@ -1,28 +1,35 @@
-import React from 'react';
-import { LayoutDashboard, CheckSquare, StickyNote, TrendingUp, Calendar } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { LayoutDashboard, CheckSquare, StickyNote, TrendingUp, Calendar, PlayCircle } from 'lucide-react';
 import { Task, Note } from '../types';
+import { getDailyQuote } from '../utils/auraLogic';
 
 interface DashboardViewProps {
     tasks: Task[];
     notes: Note[];
+    userName?: string;
 }
 
-export default function DashboardView({ tasks, notes }: DashboardViewProps) {
+export default function DashboardView({ tasks, notes, userName = 'Víctor' }: DashboardViewProps) {
     // Get today's tasks
     const today = new Date().toISOString().split('T')[0];
     const todaysTasks = tasks.filter(t => t.date.startsWith(today));
     const completedToday = todaysTasks.filter(t => t.status === 'done').length;
     const pendingToday = todaysTasks.filter(t => t.status !== 'done').length;
+    const quote = useMemo(() => getDailyQuote(), []);
 
     return (
         <div className="h-full flex flex-col bg-aura-black overflow-y-auto">
-            {/* Header */}
-            <div className="px-6 py-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <LayoutDashboard className="text-aura-accent" size={32} />
-                    <h1 className="text-4xl font-bold text-aura-white">Inicio</h1>
+            {/* Header / Motivational Block */}
+            <div className="px-6 pt-8 pb-4">
+                <div className="bg-gradient-to-br from-gray-900 to-indigo-950 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden group border border-white/10">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <LayoutDashboard size={120} />
+                    </div>
+                    <div className="relative z-10">
+                        <h2 className="text-2xl font-bold mb-2">Hola, {userName} ✨</h2>
+                        <p className="text-indigo-200/80 italic text-sm max-w-xl">"{quote.text}"</p>
+                    </div>
                 </div>
-                <p className="text-gray-400">Bienvenido de nuevo. Aquí está tu resumen de hoy.</p>
             </div>
 
             {/* Stats Grid */}

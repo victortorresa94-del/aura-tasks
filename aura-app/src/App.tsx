@@ -24,41 +24,54 @@ import ProjectsSidebar from './components/ProjectsSidebar';
 import ProjectDetailView from './views/ProjectDetailView';
 
 import { parseCommand, getDailyQuote } from './utils/auraLogic';
-import { Task, Project, User, Note, Contact, Transaction, Habit, FileItem, CustomView, TaskStatus, Tab, ChatSession } from './types';
+import { Task, Project, User, Note, Contact, Transaction, Habit, FileItem, CustomView, TaskStatus, Tab, ChatSession, Subscription, RecurringExpense } from './types';
 import { AURA_IMAGE } from './utils/constants';
+import { getViewConfig } from './utils/viewConfig';
+import { DEFAULT_VISIBLE_COLUMNS } from './utils/columnDefs';
 
 // --- GLOBAL DATA (Persisted) ---
 import { usePersistedState } from './hooks/usePersistedState';
 import { useAuth } from './contexts/AuthContext';
 // --- REPOSITORIES ---
-import { tasksRepo, projectsRepo, notesRepo, contactsRepo, filesRepo, customViewsRepo } from './firebase/repositories';
+import {
+  tasksRepo, projectsRepo, notesRepo, contactsRepo, filesRepo, customViewsRepo,
+  tabsRepo, statusesRepo, financeRepo, habitsRepo, chatSessionsRepo,
+  subscriptionsRepo, recurringExpensesRepo
+} from './firebase/repositories';
 import { useFirestoreCollection } from './hooks/useFirestoreCollection';
 
 export default function App() {
+  // --- AUTH INTEGRATION (Moved Up) ---
+  const { user: authUser, loading: authLoading } = useAuth();
+
   // Main Section Navigation
   const [activeSection, setActiveSection] = usePersistedState('active_section', 'dashboard', 'aura_active_section');
   const [currentView, setCurrentView] = useState('hoy');
 
   // Tabs System
-  const [tabs, setTabs] = usePersistedState<Tab[]>('tabs', [], 'aura_tabs');
+  const { data: tabs } = useFirestoreCollection(tabsRepo);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
   // Statuses
-  const [statuses, setStatuses] = usePersistedState<TaskStatus[]>('statuses', [
-    { id: 'todo', name: 'Por hacer', color: 'bg-gray-700', isCompleted: false },
-    { id: 'in_progress', name: 'En curso', color: 'bg-blue-600', isCompleted: false },
-    { id: 'review', name: 'Revisión', color: 'bg-purple-600', isCompleted: false },
-    { id: 'done', name: 'Completada', color: 'bg-green-600', isCompleted: true }
-  ], 'aura_statuses');
+  const { data: statuses } = useFirestoreCollection(statusesRepo);
+
+  // Seeding Statuses if empty (first run)
+  useEffect(() => {
+    if (statuses.length === 0 && authUser) {
+      // Optional: Seed default statuses if you want to ensure they exist for new users
+      // This checks if we loaded (length 0 might mean loading or empty). 
+      // useFirestoreCollection has 'loading' prop we could usage.
+      // For now, let's assume if it's empty we might need to handle it in UI or seed here.
+      // Skipping auto-seed to avoid race conditions, but keep in mind.
+    }
+  }, [statuses.length, authUser]);
 
   const { data: tasks, loading: tasksLoading } = useFirestoreCollection(tasksRepo);
 
   // Tab Handlers
   const handleAddTab = (tab: Tab) => {
-    setTabs(prev => {
-      if (prev.find(t => t.id === tab.id)) return prev;
-      return [...prev, tab];
-    });
+    if (tabs.find(t => t.id === tab.id)) return;
+    tabsRepo.create(user.id, tab);
     setActiveTabId(tab.id);
   };
 
@@ -83,12 +96,13 @@ export default function App() {
   };
 
   const handleCloseTab = (id: string) => {
-    setTabs(prev => prev.filter(t => t.id !== id));
+    tabsRepo.delete(user.id, id);
     if (activeTabId === id) setActiveTabId(null);
   };
 
   const handleTogglePin = (id: string) => {
-    setTabs(prev => prev.map(t => t.id === id ? { ...t, isPinned: !t.isPinned } : t));
+    const tab = tabs.find(t => t.id === id);
+    if (tab) tabsRepo.update(user.id, id, { isPinned: !tab.isPinned });
   };
 
   useEffect(() => {
@@ -106,11 +120,13 @@ export default function App() {
   const { data: contacts, loading: contactsLoading } = useFirestoreCollection(contactsRepo);
   const { data: files } = useFirestoreCollection(filesRepo);
 
-  const [transactions, setTransactions] = usePersistedState<Transaction[]>('finance', [], 'aura_finance');
-  const [habits, setHabits] = usePersistedState<Habit[]>('habits', [], 'aura_habits');
+  const { data: transactions } = useFirestoreCollection(financeRepo);
+  const { data: habits } = useFirestoreCollection(habitsRepo);
+  const { data: subscriptions } = useFirestoreCollection(subscriptionsRepo);
+  const { data: recurringExpenses } = useFirestoreCollection(recurringExpensesRepo);
 
   // --- AUTH INTEGRATION ---
-  const { user: authUser, loading: authLoading } = useAuth();
+  // (Moved to top)
 
   const [localUserPreferences, setLocalUserPreferences] = usePersistedState<Partial<User>>('user_prefs', {
     completedTasks: 0
@@ -132,7 +148,7 @@ export default function App() {
   const { data: customViews } = useFirestoreCollection(customViewsRepo);
 
   // Chat History
-  const [chatSessions, setChatSessions] = usePersistedState<ChatSession[]>('chat_sessions', [], 'aura_chat_sessions');
+  const { data: chatSessions } = useFirestoreCollection(chatSessionsRepo);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
   // UI State
@@ -251,10 +267,35 @@ export default function App() {
     customViewsRepo.update(user.id, updatedView.id, updatedView);
   };
 
+  // Persistence Handlers (Replacing setters)
+  const handleUpdateStatus = (updated: TaskStatus[]) => {
+    // Logic for reordering or batch update if needed. 
+    // For single status update, use statusesRepo.update
+    // If the UI sends the whole array, we might need a batch overwrite or just ignore reorder for now.
+    // SettingsModal usually updates one by one or adds.
+    console.warn("Bulk status update not fully supported via Repo yet - implement batch update if needed");
+  };
+
+  const handleCreateTransaction = (t: Transaction) => financeRepo.create(user.id, t);
+  const handleUpdateTransaction = (id: string, t: Partial<Transaction>) => financeRepo.update(user.id, id, t);
+  const handleDeleteTransaction = (id: string) => financeRepo.delete(user.id, id);
+
+  const handleCreateHabit = (h: Habit) => habitsRepo.create(user.id, h);
+  const handleUpdateHabit = (id: string, h: Partial<Habit>) => habitsRepo.update(user.id, id, h);
+  const handleDeleteHabit = (id: string) => habitsRepo.delete(user.id, id);
+
+  const handleCreateSubscription = (s: Subscription) => subscriptionsRepo.create(user.id, s);
+  const handleUpdateSubscription = (id: string, s: Partial<Subscription>) => subscriptionsRepo.update(user.id, id, s);
+  const handleDeleteSubscription = (id: string) => subscriptionsRepo.delete(user.id, id);
+
+  const handleCreateRecurring = (r: RecurringExpense) => recurringExpensesRepo.create(user.id, r);
+  const handleUpdateRecurring = (id: string, r: Partial<RecurringExpense>) => recurringExpensesRepo.update(user.id, id, r);
+  const handleDeleteRecurring = (id: string) => recurringExpensesRepo.delete(user.id, id);
+
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <DashboardView tasks={tasks} notes={notes} />;
+        return <DashboardView tasks={tasks} notes={notes} userName={user.name} />;
       case 'insights':
         return <InsightsView tasks={tasks} transactions={transactions} habits={habits} projects={projects} statuses={statuses} />;
       case 'projects':
@@ -274,7 +315,10 @@ export default function App() {
               onUpdateTask={(id, updates) => tasksRepo.update(user.id, id, updates)}
               onCreateTask={handleAddTask}
               onBack={() => setCurrentView('proyectos')}
-              onAddTab={(label, type, data, path) => handleAddTab({ id: Date.now().toString(), label, type, data, path })}
+              onAddTab={(label, type, data, path) => handleAddTab({
+                id: Date.now().toString(), label, type, data, path,
+                ownerId: user.id || 'guest', createdAt: Date.now(), updatedAt: Date.now()
+              } as Tab)}
             />
           );
         }
@@ -334,12 +378,35 @@ export default function App() {
       );
       case 'crm': return (
         <CRMView
-          contacts={contacts} setContacts={() => { }}
+          contacts={contacts}
+          onAddContact={(c) => contactsRepo.create(user.id, c)}
+          onUpdateContact={(id, c) => contactsRepo.update(user.id, id, c)}
+          onDeleteContact={(id) => contactsRepo.delete(user.id, id)}
           tasks={tasks} notes={notes} files={files}
           showToast={showToast}
         />
       );
-      case 'planning': return <PlanningView tasks={tasks} onAddTask={handleAddTask} transactions={transactions} setTransactions={setTransactions} habits={habits} setHabits={setHabits} />;
+      case 'planning': return (
+        <PlanningView
+          tasks={tasks} onAddTask={handleAddTask}
+          transactions={transactions}
+          onAddTransaction={handleCreateTransaction}
+          onUpdateTransaction={handleUpdateTransaction}
+          onDeleteTransaction={handleDeleteTransaction}
+          habits={habits}
+          onAddHabit={handleCreateHabit}
+          onUpdateHabit={handleUpdateHabit}
+          onDeleteHabit={handleDeleteHabit}
+          subscriptions={subscriptions}
+          onAddSubscription={handleCreateSubscription}
+          onUpdateSubscription={handleUpdateSubscription}
+          onDeleteSubscription={handleDeleteSubscription}
+          recurringExpenses={recurringExpenses}
+          onAddRecurring={handleCreateRecurring}
+          onUpdateRecurring={handleUpdateRecurring}
+          onDeleteRecurring={handleDeleteRecurring}
+        />
+      );
       case 'gallery': return (
         <GalleryView
           files={files}
@@ -382,10 +449,13 @@ export default function App() {
           if (currentView === id) setCurrentView('hoy');
         }}
         onAddTab={(label, type, data, path) => {
-          const newTab: Tab = {
+          const newTab = {
             id: Date.now().toString(),
-            label, type, data, path
-          };
+            label, type, data, path,
+            ownerId: user.id || 'guest',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          } as Tab;
           handleAddTab(newTab);
           showToast(`Pestaña agregada: ${label}`);
         }}
@@ -592,18 +662,21 @@ export default function App() {
         onSelectSession={setActiveChatId}
         onCreateSession={() => {
           const newId = Date.now().toString();
-          setChatSessions(prev => [{ id: newId, title: 'Nueva conversación', messages: [], lastActive: Date.now() }, ...prev]);
+          chatSessionsRepo.create(user.id, {
+            id: newId, title: 'Nueva conversación', messages: [], lastActive: Date.now(),
+            ownerId: user.id, createdAt: Date.now(), updatedAt: Date.now()
+          });
           setActiveChatId(newId);
         }}
         onUpdateSession={(id, messages) => {
-          setChatSessions(prev => prev.map(s => s.id === id ? { ...s, messages, lastActive: Date.now() } : s));
+          chatSessionsRepo.update(user.id, id, { messages, lastActive: Date.now() });
         }}
         onDeleteSession={(id) => {
-          setChatSessions(prev => prev.filter(s => s.id !== id));
+          chatSessionsRepo.delete(user.id, id);
           if (activeChatId === id) setActiveChatId(null);
         }}
         onRenameSession={(id, title) => {
-          setChatSessions(prev => prev.map(s => s.id === id ? { ...s, title } : s));
+          chatSessionsRepo.update(user.id, id, { title });
         }}
       />
 
@@ -612,17 +685,30 @@ export default function App() {
       <SettingsModal
         isOpen={showSettings} onClose={() => setShowSettings(false)}
         user={user} onUpdateUser={updateUser}
-        statuses={statuses} setStatuses={setStatuses}
+        statuses={statuses}
+        onUpdateStatus={(id, updates) => statusesRepo.update(user.id, id, updates)}
+        onCreateStatus={(s) => statusesRepo.create(user.id, s)}
+        onDeleteStatus={(id) => statusesRepo.delete(user.id, id)}
       />
+
+
 
       {selectedTask && (
         <TaskDetail
           task={selectedTask} lists={projects} statuses={statuses}
           notes={notes} contacts={contacts} files={files} allTasks={tasks}
+          visibleColumns={
+            (customViews.find(v => v.id === currentView)?.visibleColumns) ||
+            (getViewConfig(currentView)?.visibleColumns) ||
+            DEFAULT_VISIBLE_COLUMNS
+          }
           onClose={() => setSelectedTask(null)}
           onUpdate={handleUpdateTask}
           onDelete={handleDeleteTask}
-          onAddTab={(label, type, data, path) => handleAddTab({ id: Date.now().toString(), label, type, data, path })}
+          onAddTab={(label, type, data, path) => handleAddTab({
+            id: Date.now().toString(), label, type, data, path,
+            ownerId: user.id || 'guest', createdAt: Date.now(), updatedAt: Date.now()
+          } as Tab)}
         />
       )}
     </div>

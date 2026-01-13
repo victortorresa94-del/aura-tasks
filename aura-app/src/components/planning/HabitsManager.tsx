@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Archive, MoreHorizontal, Check, Edit3, Trash2 } from 'lucide-react';
-import { Habit } from '../../types/habits';
-import { habitService } from '../../services/habitService';
+// Imports updated to remove habitService usage if no longer needed, or keep for types
+import { Habit } from '../../types'; // Unified type import
+// import { habitService } from '../../services/habitService'; // Removing service usage
 import { useAuth } from '../../contexts/AuthContext';
 
-export const HabitsManager: React.FC = () => {
+interface HabitsManagerProps {
+    habits: Habit[];
+    onAddHabit: (h: Habit) => void;
+    onUpdateHabit: (id: string, h: Partial<Habit>) => void;
+    onDeleteHabit: (id: string) => void;
+}
+
+export const HabitsManager: React.FC<HabitsManagerProps> = ({ habits, onAddHabit, onUpdateHabit, onDeleteHabit }) => {
     const { user } = useAuth();
-    const [habits, setHabits] = useState<Habit[]>([]);
+    // const [habits, setHabits] = useState<Habit[]>([]); // Removing local state
     const [showArchived, setShowArchived] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -18,15 +26,12 @@ export const HabitsManager: React.FC = () => {
     const [context, setContext] = useState('mañana');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        if (user) loadHabits();
-    }, [user]);
+    // Removed internal loadHabits useEffect
+    // useEffect(() => {
+    //    if (user) loadHabits();
+    // }, [user]);
 
-    const loadHabits = async () => {
-        if (!user) return;
-        const data = await habitService.getUserHabits(user.uid);
-        setHabits(data);
-    };
+    // Removed loadHabits function
 
     const activeHabits = habits.filter(h => h.status === 'active');
     const archivedHabits = habits.filter(h => h.status === 'archived');
@@ -36,32 +41,40 @@ export const HabitsManager: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || isSubmitting) return;
+        if (!user) return;
 
-        setIsSubmitting(true);
         try {
             if (editingHabit) {
-                await habitService.updateHabit(editingHabit.id, {
+                onUpdateHabit(editingHabit.id, {
                     name, intention, rhythm, context: context as any, emoji
                 });
             } else {
-                await habitService.createHabit(user.uid, {
-                    name, intention, rhythm, context: context as any, emoji
-                });
+                onAddHabit({
+                    id: Date.now().toString(), // Temp ID, repo overwrites
+                    ownerId: user.uid,
+                    name, intention, rhythm, context: context as any, emoji,
+                    status: 'active',
+                    streak: 0,
+                    completedDays: [],
+                    frequency: 'daily', // Default
+                    createdAt: Date.now(), updatedAt: Date.now()
+                } as Habit);
             }
             setIsModalOpen(false);
             resetForm();
-            loadHabits();
         } catch (error) {
             console.error("Error saving habit:", error);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
-    const handleArchive = async (habitId: string) => {
-        await habitService.archiveHabit(habitId);
-        loadHabits();
+    const handleArchive = (habitId: string) => {
+        const habit = habits.find(h => h.id === habitId);
+        if (habit) {
+            // Toggle archive? Logic was just archive.
+            // If already archived, maybe unarchive?
+            // Assuming 'active' -> 'archived'
+            onUpdateHabit(habitId, { status: 'archived' });
+        }
     };
 
     const handleEdit = (habit: Habit) => {

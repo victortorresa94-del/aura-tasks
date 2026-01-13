@@ -26,6 +26,33 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask, onUpdateT
     const [url, setUrl] = useState('');
     const [priority, setPriority] = useState<Priority>('media');
 
+    // Swipe State
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+        if (isLeftSwipe) {
+            nextMonth();
+        }
+        if (isRightSwipe) {
+            prevMonth();
+        }
+    };
+
     // Navigation
     const goToToday = () => setCurrentDate(new Date());
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -89,7 +116,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask, onUpdateT
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
     return (
-        <div className="h-full flex flex-col bg-aura-black text-aura-white overflow-hidden animate-fade-in-up">
+        <div
+            className="h-full flex flex-col bg-aura-black text-aura-white overflow-hidden animate-fade-in-up"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
             {/* HEADER */}
             <div className="p-4 flex items-center justify-between border-b border-white/5 bg-aura-black/90 shrink-0">
                 <div className="flex items-center gap-4">
@@ -176,10 +208,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask, onUpdateT
                                         <div
                                             key={task.id}
                                             className={`px-1.5 py-0.5 text-xs rounded border-l-2 truncate cursor-pointer transition-transform hover:scale-[1.02] ${task.type === 'event'
-                                                    ? 'bg-purple-500/10 text-purple-200 border-purple-500'
-                                                    : task.status === 'done'
-                                                        ? 'bg-white/5 text-gray-500 border-gray-600 line-through'
-                                                        : 'bg-aura-gray text-white border-aura-accent'
+                                                ? 'bg-purple-500/10 text-purple-200 border-purple-500'
+                                                : task.status === 'done'
+                                                    ? 'bg-white/5 text-gray-500 border-gray-600 line-through'
+                                                    : 'bg-aura-gray text-white border-aura-accent'
                                                 }`}
                                             onClick={(e) => { e.stopPropagation(); /* TODO: Open Detail */ }}
                                         >
@@ -196,10 +228,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask, onUpdateT
 
             {/* CREATE MODAL */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-[#121212] border border-white/10 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-fade-in-up">
+                <div className="fixed inset-0 z-[60] flex justify-center items-end sm:items-center sm:p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)} />
+                    <div className="relative w-full bg-[#121212] rounded-t-2xl sm:rounded-2xl border-t sm:border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-slide-up pb-safe max-h-[90vh] sm:max-w-lg">
+
+                        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-1 sm:hidden shrink-0" />
+
                         {/* Modal Header & Tabs */}
-                        <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
+                        <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5 shrink-0">
                             <div className="flex bg-black/40 rounded-lg p-1 border border-white/5">
                                 <button
                                     onClick={() => setCreationMode('event')}
@@ -217,8 +253,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask, onUpdateT
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white p-2 rounded-full hover:bg-white/5"><X size={20} /></button>
                         </div>
 
-                        {/* Modal Content */}
-                        <div className="p-6 space-y-5">
+                        {/* Modal Content - Scrollable */}
+                        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
                             {/* Title */}
                             <div className="space-y-1">
                                 <input
@@ -321,7 +357,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onAddTask, onUpdateT
                         </div>
 
                         {/* Footer Actions */}
-                        <div className="p-4 border-t border-white/5 flex justify-end gap-3 bg-black/20">
+                        <div className="p-4 border-t border-white/5 flex justify-end gap-3 bg-black/20 shrink-0">
                             <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium">Cancelar</button>
                             <button
                                 onClick={handleCreate}

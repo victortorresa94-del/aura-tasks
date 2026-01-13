@@ -6,7 +6,7 @@ import {
     getDocs,
     query,
     where,
-    DeleteField,
+    deleteField,
     Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -47,6 +47,14 @@ export const nutritionService = {
         const newRecipe = { ...data, userId, createdAt: Timestamp.now() };
         const docRef = await addDoc(ref, newRecipe);
         return { id: docRef.id, ...newRecipe };
+    },
+
+    async updateRecipe(recipeId: string, data: Partial<Recipe>) {
+        const ref = doc(db, 'recipes', recipeId);
+        await updateDoc(ref, {
+            ...data,
+            // updatedAt: Timestamp.now() // Optional if we tracked it
+        });
     },
 
     async getUserRecipes(userId: string) {

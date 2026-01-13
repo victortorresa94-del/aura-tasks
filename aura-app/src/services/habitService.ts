@@ -1,127 +1,72 @@
-import {
-    collection,
-    addDoc,
-    updateDoc,
-    doc,
-    getDocs,
-    query,
-    where,
-    Timestamp,
-    orderBy
-} from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { Habit, Routine, RoutineSession, HabitLog } from '../types/habits';
-
-// Helper para convertir fechas de Firestore
-const convertDates = (doc: any) => {
-    const data = doc.data();
-    return {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
-        archivedAt: data.archivedAt
-    };
-};
+import { habitsRepo, routinesRepo, routineSessionsRepo, habitLogsRepo } from '../firebase/repositories';
+import { Habit, Routine } from '../types';
 
 export const habitService = {
     // --- HÁBITOS ---
 
-    async createHabit(userId: string, data: Omit<Habit, 'id' | 'createdAt' | 'status' | 'userId'>) {
-        const habitsRef = collection(db, 'habits');
-        const newHabit = {
-            ...data,
-            userId,
-            status: 'active',
-            createdAt: Timestamp.now(),
-        };
-        const docRef = await addDoc(habitsRef, newHabit);
-        return { id: docRef.id, ...newHabit };
+    async createHabit(userId: string, data: Omit<Habit, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>) {
+        return await habitsRepo.create(userId, data);
     },
 
     async getUserHabits(userId: string) {
-        const q = query(collection(db, 'habits'), where('userId', '==', userId));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(convertDates) as Habit[];
+        return await habitsRepo.getAll(userId);
     },
 
-    async updateHabit(habitId: string, data: Partial<Habit>) {
-        const habitRef = doc(db, 'habits', habitId);
-        await updateDoc(habitRef, data);
+    async updateHabit(userId: string, habitId: string, data: Partial<Habit>) {
+        await habitsRepo.update(userId, habitId, data);
     },
 
-    async archiveHabit(habitId: string) {
-        const habitRef = doc(db, 'habits', habitId);
-        await updateDoc(habitRef, {
+    async archiveHabit(userId: string, habitId: string) {
+        await habitsRepo.update(userId, habitId, {
             status: 'archived',
-            archivedAt: Timestamp.now()
+            // archivedAt: Date.now() // If added to type
         });
     },
 
     // --- REGISTRO DE HÁBITOS ---
 
     async logHabit(userId: string, habitId: string, note?: string) {
-        const logsRef = collection(db, 'habit_logs');
-        const newLog = {
-            userId,
+        await habitLogsRepo.create(userId, {
             habitId,
-            completedAt: Timestamp.now(),
-            note: note || null
-        };
-        await addDoc(logsRef, newLog);
+            completedAt: Date.now(),
+            note: note || undefined
+        });
     },
 
     // --- RUTINAS ---
 
-    async createRoutine(userId: string, data: Omit<Routine, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) {
-        const routinesRef = collection(db, 'routines');
-        const newRoutine = {
-            ...data,
-            userId,
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now()
-        };
-        const docRef = await addDoc(routinesRef, newRoutine);
-        return { id: docRef.id, ...newRoutine };
+    async createRoutine(userId: string, data: Omit<Routine, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>) {
+        return await routinesRepo.create(userId, data);
     },
 
     async getUserRoutines(userId: string) {
-        const q = query(collection(db, 'routines'), where('userId', '==', userId));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(convertDates) as Routine[];
+        return await routinesRepo.getAll(userId);
     },
 
-    async updateRoutine(routineId: string, data: Partial<Routine>) {
-        const routineRef = doc(db, 'routines', routineId);
-        await updateDoc(routineRef, {
-            ...data,
-            updatedAt: Timestamp.now()
-        });
+    async updateRoutine(userId: string, routineId: string, data: Partial<Routine>) {
+        await routinesRepo.update(userId, routineId, data);
     },
 
     // --- SESIONES DE RUTINA ---
 
     async startRoutineSession(userId: string, routineId: string, routineName: string) {
-        const sessionsRef = collection(db, 'routine_sessions');
-        const newSession = {
-            userId,
+        const session = await routineSessionsRepo.create(userId, {
             routineId,
             routineName,
-            status: 'started', // Inicialmente started, luego completed/partial
-            startedAt: Timestamp.now(),
+            status: 'started',
+            startedAt: Date.now(),
             completedSteps: []
-        };
-        const docRef = await addDoc(sessionsRef, newSession);
-        return docRef.id;
+            // createdAt/ownerId handled by repo
+        });
+        return session.id;
     },
 
-    async completeRoutineSession(sessionId: string, status: 'completed' | 'partial' | 'abandoned', completedSteps: string[], notes?: string) {
-        const sessionRef = doc(db, 'routine_sessions', sessionId);
-        await updateDoc(sessionRef, {
+    async completeRoutineSession(userId: string, sessionId: string, status: 'completed' | 'partial' | 'abandoned', completedSteps: string[], notes?: string) {
+        await routineSessionsRepo.update(userId, sessionId, {
             status,
-            endedAt: Timestamp.now(),
+            endedAt: Date.now(),
             completedSteps,
-            notes: notes || null
+            notes: notes || undefined
         });
     }
 };

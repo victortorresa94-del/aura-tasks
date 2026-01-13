@@ -10,6 +10,7 @@ export interface ViewConfig {
         priority?: Priority[];
         projectIds?: string[];
     };
+    visibleColumns?: string[];
 }
 
 const DEFAULT_CONFIGS: Record<string, ViewConfig> = {

@@ -64,13 +64,7 @@ export const RecipeManager: React.FC = () => {
         };
 
         if (editingRecipe) {
-            // Update logic would go here if service supported it directly,
-            // for now we might need to handle it or verify if 'createRecipe' overwrites? 
-            // The service uses 'addDoc' (auto-id). So we are treating this as "Create New" always if we don't fix service.
-            // TODO: Fix service to support update. For now assuming new.
-            // Actually, let's just log and not duplicate for now to avoid mess, 
-            // but ideally we should update.
-            await nutritionService.createRecipe(user.uid, recipeData); // Fallback
+            await nutritionService.updateRecipe(editingRecipe.id, recipeData);
         } else {
             await nutritionService.createRecipe(user.uid, recipeData);
         }

@@ -164,7 +164,7 @@ export const ProductManager: React.FC = () => {
                     />
 
                     {/* Modal Content */}
-                    <div className="relative w-full h-[100dvh] sm:h-auto sm:max-w-lg bg-[#121212] sm:rounded-3xl flex flex-col shadow-2xl animate-slide-up border border-white/10">
+                    <div className="relative w-full h-[100dvh] sm:h-auto sm:max-h-[80vh] sm:max-w-lg bg-[#121212] sm:rounded-3xl flex flex-col shadow-2xl animate-slide-up border border-white/10 overflow-hidden my-auto">
 
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Pause, SkipForward, CheckCircle2, RotateCcw } from 'lucide-react';
-import { Routine, RoutineStep } from '../../types/habits';
+import { Routine, RoutineStep } from '../../types';
 import { habitService } from '../../services/habitService';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -67,8 +67,9 @@ export const RoutinePlayer: React.FC<RoutinePlayerProps> = ({ routine, onFinish 
     };
 
     const finishRoutine = async () => {
-        if (sessionId) {
+        if (sessionId && user) {
             await habitService.completeRoutineSession(
+                user.uid,
                 sessionId,
                 'completed',
                 routine.steps.map(s => s.id)
@@ -79,8 +80,9 @@ export const RoutinePlayer: React.FC<RoutinePlayerProps> = ({ routine, onFinish 
 
     const handleAbandon = async () => {
         if (confirm('¿Seguro que quieres abandonar la rutina?')) {
-            if (sessionId) {
+            if (sessionId && user) {
                 await habitService.completeRoutineSession(
+                    user.uid,
                     sessionId,
                     'abandoned',
                     routine.steps.slice(0, currentStepIndex).map(s => s.id)

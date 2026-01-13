@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   X, Calendar, Flag, Tag, Trash2, Clock, MapPin, Phone,
@@ -7,6 +8,7 @@ import { Task, Project, Priority, Note, Contact, FileItem, LinkedItem, TaskStatu
 import DatePicker from './DatePicker';
 import LinkManager from './LinkManager';
 import { parseDateFromText } from '../utils/auraLogic';
+import { AVAILABLE_COLUMNS, getColumnDef } from '../utils/columnDefs';
 
 interface TaskDetailProps {
   task: Task;
@@ -16,6 +18,7 @@ interface TaskDetailProps {
   contacts: Contact[];
   files: FileItem[];
   allTasks: Task[];
+  visibleColumns?: string[]; // New Prop
   onClose: () => void;
   onUpdate: (task: Task) => void;
   onDelete: (id: string) => void;
@@ -25,7 +28,7 @@ interface TaskDetailProps {
 }
 
 const TaskDetail: React.FC<TaskDetailProps> = ({
-  task, lists, statuses, notes, contacts, files, allTasks, onClose, onUpdate, onDelete, onCreateNote, onNavigateToNote, onAddTab
+  task, lists, statuses, notes, contacts, files, allTasks, visibleColumns, onClose, onUpdate, onDelete, onCreateNote, onNavigateToNote, onAddTab
 }) => {
   const [editedTask, setEditedTask] = useState<Task>(task);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -83,10 +86,10 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:pb-0">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-      <div className="relative w-full h-auto max-h-[85vh] sm:max-h-[85vh] sm:max-w-2xl bg-[#0f0f0f] border-t border-x border-white/10 rounded-t-3xl shadow-2xl overflow-visible flex flex-col animate-slide-up ring-1 ring-white/5 pb-0">
+      <div className="relative w-full h-[85vh] sm:h-auto sm:max-h-[85vh] sm:max-w-3xl bg-[#0f0f0f] border-t sm:border border-white/10 rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col animate-slide-up ring-1 ring-white/5 pb-0 overflow-hidden">
 
         {/* Header - Minimal */}
         <div className="px-6 pt-6 pb-2 shrink-0">
@@ -114,8 +117,41 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
           />
         </div>
 
-        {/* Scrollable Content (Subtasks & Links) */}
+        {/* Scrollable Content (Subtasks & Links & Custom Fields) */}
         <div className="flex-1 overflow-y-auto px-6 py-2 pb-4 space-y-4 custom-scrollbar min-h-[0] mb-14">
+
+          {/* Custom Columns / Fields Grid */}
+          {visibleColumns && visibleColumns.length > 0 && (
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {visibleColumns.map(colId => {
+                if (['title', 'status', 'priority', 'date', 'listId', 'notes'].includes(colId)) return null; // handled elsewhere
+
+                const def = getColumnDef(colId);
+                if (!def) return null;
+
+                const val = (editedTask.customValues && editedTask.customValues[colId]) || (editedTask as any)[colId];
+
+                return (
+                  <div key={colId} className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
+                      {def.icon} {def.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={val || ''}
+                      onChange={(e) => {
+                        // Update custom value
+                        const newCustom = { ...(editedTask.customValues || {}), [colId]: e.target.value };
+                        setEditedTask({ ...editedTask, customValues: newCustom });
+                      }}
+                      className="bg-white/5 border border-white/5 rounded-lg px-2 py-1 text-xs text-aura-white focus:border-aura-accent/50 focus:ring-0"
+                      placeholder="Sin valor"
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* Subtasks */}
           <div className="space-y-2">
@@ -168,7 +204,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               contacts={contacts}
               files={files}
               excludeId={editedTask.id}
-              compact={true} // Assuming LinkManager can handle a compact prop or adapts to container
             />
           </div>
         </div>

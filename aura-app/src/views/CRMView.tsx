@@ -8,7 +8,9 @@ import LinkManager from '../components/LinkManager';
 
 interface CRMViewProps {
   contacts: Contact[];
-  setContacts: React.Dispatch<React.SetStateAction<Contact[]>>;
+  onAddContact: (c: Contact) => void;
+  onUpdateContact: (id: string, c: Partial<Contact>) => void;
+  onDeleteContact: (id: string) => void;
   // Linking Context
   tasks: Task[];
   notes: Note[];
@@ -16,7 +18,10 @@ interface CRMViewProps {
   showToast?: (msg: string) => void;
 }
 
-const CRMView: React.FC<CRMViewProps> = ({ contacts, setContacts, tasks, notes, files, showToast }) => {
+const CRMView: React.FC<CRMViewProps> = ({
+  contacts, onAddContact, onUpdateContact, onDeleteContact,
+  tasks, notes, files, showToast
+}) => {
   const [search, setSearch] = useState('');
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
@@ -40,13 +45,24 @@ const CRMView: React.FC<CRMViewProps> = ({ contacts, setContacts, tasks, notes, 
   };
 
   const handleSave = () => {
-    if (!editingContact || !editingContact.name) return;
+    if (!editingContact) return;
+    if (!editingContact.name.trim()) {
+      if (showToast) showToast("El nombre es obligatorio");
+      return;
+    }
 
     if (editingContact.id) {
-      setContacts(prev => prev.map(c => c.id === editingContact.id ? editingContact : c));
+      onUpdateContact(editingContact.id, editingContact);
       if (showToast) showToast("Contacto actualizado");
     } else {
-      setContacts(prev => [{ ...editingContact, id: Date.now().toString() }, ...prev]);
+      const newContact: Contact = {
+        ...editingContact,
+        id: Date.now().toString(),
+        ownerId: 'temp', // Repository handles this
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      onAddContact(newContact);
       if (showToast) showToast("Contacto creado");
     }
     setEditingContact(null);
@@ -54,7 +70,7 @@ const CRMView: React.FC<CRMViewProps> = ({ contacts, setContacts, tasks, notes, 
 
   const deleteContact = (id: string) => {
     if (confirm("¿Eliminar contacto?")) {
-      setContacts(prev => prev.filter(c => c.id !== id));
+      onDeleteContact(id);
       setEditingContact(null);
       if (showToast) showToast("Contacto eliminado");
     }

@@ -5,14 +5,30 @@ import CalendarView from './CalendarView';
 import { HabitsManager } from '../components/planning/HabitsManager';
 import { RoutinesManager } from '../components/planning/RoutinesManager';
 import { NutritionLayout } from '../components/planning/nutrition/NutritionLayout';
+import { EmptyState } from '../components/ui/EmptyState';
 
 interface PlanningViewProps {
   tasks: Task[];
   onAddTask: (task: Task) => void;
+  // Transactions
   transactions: Transaction[];
-  setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
+  onAddTransaction: (t: Transaction) => void;
+  onUpdateTransaction: (id: string, t: Partial<Transaction>) => void;
+  onDeleteTransaction: (id: string) => void;
+  // Habits
   habits: Habit[];
-  setHabits: React.Dispatch<React.SetStateAction<Habit[]>>;
+  onAddHabit: (h: Habit) => void;
+  onUpdateHabit: (id: string, h: Partial<Habit>) => void;
+  onDeleteHabit: (id: string) => void;
+  // Subscriptions & Recurring (Finance Extras)
+  subscriptions: Subscription[];
+  onAddSubscription: (s: Subscription) => void;
+  onUpdateSubscription: (id: string, s: Partial<Subscription>) => void;
+  onDeleteSubscription: (id: string) => void;
+  recurringExpenses: RecurringExpense[];
+  onAddRecurring: (r: RecurringExpense) => void;
+  onUpdateRecurring: (id: string, r: Partial<RecurringExpense>) => void;
+  onDeleteRecurring: (id: string) => void;
 }
 
 const getServiceStyle = (name: string) => {
@@ -34,7 +50,13 @@ const getServiceStyle = (name: string) => {
   return { bg: 'bg-gray-800', text: 'text-gray-300', icon: <span className="text-sm font-bold">{name.substring(0, 2).toUpperCase()}</span> };
 };
 
-const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transactions, setTransactions, habits, setHabits }) => {
+const PlanningView: React.FC<PlanningViewProps> = ({
+  tasks, onAddTask,
+  transactions, onAddTransaction, onUpdateTransaction, onDeleteTransaction,
+  habits, onAddHabit, onUpdateHabit, onDeleteHabit,
+  subscriptions, onAddSubscription, onUpdateSubscription, onDeleteSubscription,
+  recurringExpenses, onAddRecurring, onUpdateRecurring, onDeleteRecurring
+}) => {
   const [activeTab, setActiveTab] = useState<'calendar' | 'finance' | 'habits' | 'routines' | 'nutrition' | 'projects'>('calendar');
 
   // Modals State
@@ -62,17 +84,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
   const [recAmount, setRecAmount] = useState('');
   const [recPayDay, setRecPayDay] = useState('');
 
-  // Mock Data for Finance
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([
-    { id: '1', name: 'Netflix', amount: 15.99, currency: '€', frequency: 'monthly', nextPaymentDate: '2025-02-15', category: 'Ocio', status: 'active' },
-    { id: '2', name: 'Spotify', amount: 9.99, currency: '€', frequency: 'monthly', nextPaymentDate: '2025-02-10', category: 'Ocio', status: 'active' },
-    { id: '3', name: 'ChatGPT Plus', amount: 20.00, currency: '$', frequency: 'monthly', nextPaymentDate: '2025-02-05', category: 'IA', status: 'active' },
-  ]);
-
-  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([
-    { id: '1', name: 'Alquiler', amount: 850, category: 'Vivienda', frequency: 'monthly', payDay: 1 },
-    { id: '2', name: 'Internet', amount: 45, category: 'Servicios', frequency: 'monthly', payDay: 15 },
-  ]);
+  // Finance Calculations
 
   const calculatedBalance = transactions.reduce((acc, t) => t.type === 'income' ? acc + t.amount : acc - t.amount, 0);
   const currentBalance = manualBalance !== null ? manualBalance : calculatedBalance;
@@ -90,9 +102,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
       amount: parseFloat(amount),
       category,
       description,
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      ownerId: 'temp', createdAt: Date.now(), updatedAt: Date.now() // Repository overwrites this
     };
-    setTransactions(prev => [newTransaction, ...prev]);
+    onAddTransaction(newTransaction);
     setShowTransactionModal(false);
     setAmount(''); setDescription(''); setCategory('');
   };
@@ -107,9 +120,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
       frequency: subFreq,
       nextPaymentDate: subDate,
       category: 'General',
-      status: 'active'
+      status: 'active',
+      ownerId: 'temp', createdAt: Date.now(), updatedAt: Date.now()
     };
-    setSubscriptions(prev => [...prev, newSub]);
+    onAddSubscription(newSub);
     setShowSubModal(false);
     setSubName(''); setSubAmount(''); setSubDate('');
   };
@@ -122,9 +136,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
       amount: parseFloat(recAmount),
       frequency: 'monthly',
       category: 'Fijo',
-      payDay: parseInt(recPayDay)
+      payDay: parseInt(recPayDay),
+      ownerId: 'temp', createdAt: Date.now(), updatedAt: Date.now()
     };
-    setRecurringExpenses(prev => [...prev, newRec]);
+    onAddRecurring(newRec);
     setShowRecurringModal(false);
     setRecName(''); setRecAmount(''); setRecPayDay('');
   };
@@ -168,7 +183,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
             {/* Finance Dashboard Header */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Balance Card */}
-              <div className="lg:col-span-2 bg-gradient-to-br from-gray-900 to-black p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+              <div className="lg:col-span-2 bg-gradient-to-br from-gray-900 to-black p-5 md:p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                   <Wallet size={120} />
                 </div>
@@ -193,7 +208,7 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
                       </button>
                     )}
                   </div>
-                  <h2 className={`text-5xl font-bold mb-6 ${currentBalance >= 0 ? 'text-white' : 'text-red-400'}`}>
+                  <h2 className={`text-4xl lg:text-5xl font-bold mb-6 ${currentBalance >= 0 ? 'text-white' : 'text-red-400'}`}>
                     {currentBalance.toLocaleString()}€
                   </h2>
 
@@ -316,8 +331,15 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
             <div className="bg-aura-gray/10 rounded-3xl border border-white/5 p-6">
               <h3 className="font-bold text-gray-400 text-sm uppercase tracking-widest mb-4">Últimos movimientos</h3>
               <div className="space-y-2">
-                {transactions.length === 0 ? <p className="text-gray-600 italic text-sm">Sin movimientos</p> :
-                  transactions.map(t => (
+                {transactions.length === 0 ? (
+                  <EmptyState
+                    icon={TrendingUp}
+                    title="Sin movimientos"
+                    description="Añade tus primeros ingresos o gastos."
+                    compact
+                  />
+                ) : (
+                  transactions.slice().reverse().slice(0, 10).map(t => (
                     <div key={t.id} className="flex items-center justify-between p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded-lg transition-colors">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
@@ -333,14 +355,19 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
                       </span>
                     </div>
                   ))
-                }
+                )}
               </div>
             </div>
           </div>
         )}
 
         {activeTab === 'habits' && (
-          <HabitsManager />
+          <HabitsManager
+            habits={habits}
+            onAddHabit={onAddHabit}
+            onUpdateHabit={onUpdateHabit}
+            onDeleteHabit={onDeleteHabit}
+          />
         )}
 
         {activeTab === 'routines' && (
@@ -369,8 +396,11 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
 
       {/* Transaction Modal */}
       {showTransactionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-          <div className="bg-aura-black rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/10">
+        <div className="fixed inset-0 z-[60] flex justify-center items-end sm:items-center sm:p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowTransactionModal(false)} />
+          <div className="relative w-full bg-[#1A1A1A] rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm border-t sm:border border-white/10 shadow-xl animate-slide-up pb-safe">
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden" />
+
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-aura-white">
               {transactionType === 'income' ? <TrendingUp className="text-emerald-400" /> : <TrendingDown className="text-red-400" />}
               {transactionType === 'income' ? 'Añadir Ingreso' : 'Añadir Gasto'}
@@ -415,10 +445,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
             </div>
 
             <div className="flex gap-3 mt-8">
-              <button onClick={() => setShowTransactionModal(false)} className="flex-1 py-2 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors">Cancelar</button>
+              <button onClick={() => setShowTransactionModal(false)} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl transition-colors">Cancelar</button>
               <button
                 onClick={handleAddTransaction}
-                className={`flex-1 py-2 text-white font-bold rounded-xl shadow-md transition-all ${transactionType === 'income' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}
+                className={`flex-1 py-3 text-white font-bold rounded-xl shadow-md transition-all ${transactionType === 'income' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}
               >
                 Guardar
               </button>
@@ -429,8 +459,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
 
       {/* Subscription Modal */}
       {showSubModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-          <div className="bg-aura-black rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/10">
+        <div className="fixed inset-0 z-[60] flex justify-center items-end sm:items-center sm:p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowSubModal(false)} />
+          <div className="relative w-full bg-[#1A1A1A] rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm border-t sm:border border-white/10 shadow-xl animate-slide-up pb-safe">
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden" />
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-aura-white">
               <Repeat className="text-purple-400" /> Añadir Suscripción
             </h3>
@@ -449,8 +481,8 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowSubModal(false)} className="flex-1 py-2 text-gray-400 font-bold hover:bg-white/5 rounded-xl">Cancelar</button>
-              <button onClick={handleAddSubscription} className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md">Guardar</button>
+              <button onClick={() => setShowSubModal(false)} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl">Cancelar</button>
+              <button onClick={handleAddSubscription} className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md">Guardar</button>
             </div>
           </div>
         </div>
@@ -458,8 +490,10 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
 
       {/* Recurring Expense Modal */}
       {showRecurringModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
-          <div className="bg-aura-black rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/10">
+        <div className="fixed inset-0 z-[60] flex justify-center items-end sm:items-center sm:p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowRecurringModal(false)} />
+          <div className="relative w-full bg-[#1A1A1A] rounded-t-2xl sm:rounded-2xl p-6 sm:max-w-sm border-t sm:border border-white/10 shadow-xl animate-slide-up pb-safe">
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden" />
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-aura-white">
               <Zap className="text-orange-400" /> Añadir Gasto Fijo
             </h3>
@@ -478,8 +512,8 @@ const PlanningView: React.FC<PlanningViewProps> = ({ tasks, onAddTask, transacti
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowRecurringModal(false)} className="flex-1 py-2 text-gray-400 font-bold hover:bg-white/5 rounded-xl">Cancelar</button>
-              <button onClick={handleAddRecurring} className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-md">Guardar</button>
+              <button onClick={() => setShowRecurringModal(false)} className="flex-1 py-3 text-gray-400 font-bold hover:bg-white/5 rounded-xl">Cancelar</button>
+              <button onClick={handleAddRecurring} className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-md">Guardar</button>
             </div>
           </div>
         </div>

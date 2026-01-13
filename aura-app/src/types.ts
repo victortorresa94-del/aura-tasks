@@ -6,10 +6,10 @@ export type TaskType = 'normal' | 'call' | 'shopping' | 'music' | 'payment' | 'e
 
 export type EntityType = 'task' | 'note' | 'contact' | 'file';
 
-export interface TaskStatus {
+export interface TaskStatus extends BaseEntity {
   id: string;
   name: string;
-  color: string; // Tailwind color class e.g. 'bg-blue-500'
+  color: string;
   isCompleted?: boolean;
 }
 
@@ -73,6 +73,7 @@ export interface Task extends BaseEntity {
   isRecurring?: boolean;
   frequency?: string;
   subtasks?: SubTask[];
+  customValues?: Record<string, any>;
 }
 
 export interface SubTask {
@@ -100,6 +101,7 @@ export interface CustomView extends BaseEntity {
     status?: string[];     // Array of Status IDs
     tags?: string[];
   };
+  visibleColumns?: string[];
 }
 
 export type BlockType = 'text' | 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'checkbox' | 'toggle' | 'image' | 'divider' | 'quote' | 'callout';
@@ -134,12 +136,12 @@ export interface ChatAttachment {
   extractedText?: string; // for documents (PDF, Word, Excel)
 }
 
-export interface Tab {
+export interface Tab extends BaseEntity {
   id: string;
   label: string;
   type: 'view' | 'entity' | 'project' | 'note' | 'task' | 'contact';
-  data: any; // Context data (e.g., view ID, entity object or ID)
-  path: string; // Identifier for navigation restoration (e.g. 'tasks', 'project:123')
+  data: any;
+  path: string;
   color?: string;
   isPinned?: boolean;
 }
@@ -184,7 +186,7 @@ export interface Contact extends BaseEntity {
   lastContact?: number;
 }
 
-export interface Transaction {
+export interface Transaction extends BaseEntity {
   id: string;
   type: 'income' | 'expense';
   amount: number;
@@ -193,12 +195,20 @@ export interface Transaction {
   description: string;
 }
 
-export interface Habit {
+export type HabitContext = 'mañana' | 'tarde' | 'noche' | 'cuerpo' | 'mente' | 'trabajo' | 'otro';
+
+export interface Habit extends BaseEntity {
   id: string;
   name: string;
   frequency: 'daily' | 'weekly';
   streak: number;
   completedDays: string[];
+  // Extended fields
+  intention?: string;
+  rhythm?: string;
+  context: HabitContext;
+  emoji?: string;
+  status: 'active' | 'archived';
 }
 
 export interface User {
@@ -229,23 +239,29 @@ export interface CalendarEvent {
   isAllDay: boolean;
 }
 
-export interface ChatSession {
+export interface ChatSession extends BaseEntity {
   id: string;
-  title: string; // e.g., "Conversation about Marketing" (or first message summary)
+  title: string;
   messages: ChatMessage[];
   lastActive: number;
 }
 
 // Firestore Entity Wrappers
-export interface FirestoreTask extends Task, BaseEntity { }
-export interface FirestoreNote extends Note, BaseEntity { }
-export interface FirestoreProject extends Project, BaseEntity { }
-export interface FirestoreContact extends Contact, BaseEntity { }
-export interface FirestoreFile extends FileItem, BaseEntity { }
-export interface FirestoreView extends CustomView, BaseEntity { }
-export interface FirestoreStatus extends TaskStatus, BaseEntity { }
+export interface FirestoreTask extends Task { }
+export interface FirestoreNote extends Note { }
+export interface FirestoreProject extends Project { }
+export interface FirestoreContact extends Contact { }
+export interface FirestoreFile extends FileItem { }
+export interface FirestoreView extends CustomView { }
+export interface FirestoreStatus extends TaskStatus { }
+export interface FirestoreTab extends Tab { }
+export interface FirestoreTransaction extends Transaction { }
+export interface FirestoreHabit extends Habit { }
+export interface FirestoreChatSession extends ChatSession { }
+export interface FirestoreSubscription extends Subscription { }
+export interface FirestoreRecurringExpense extends RecurringExpense { }
 
-export interface Subscription {
+export interface Subscription extends BaseEntity {
   id: string;
   name: string;
   amount: number;
@@ -257,7 +273,7 @@ export interface Subscription {
   logo?: string;
 }
 
-export interface RecurringExpense {
+export interface RecurringExpense extends BaseEntity {
   id: string;
   name: string;
   amount: number;
@@ -265,3 +281,52 @@ export interface RecurringExpense {
   frequency: string;
   payDay?: number;
 }
+
+// --- ROUTINES ---
+
+export type RoutineStepType = 'action' | 'break' | 'reflection';
+
+export interface RoutineStep {
+  id: string;
+  name: string;
+  type: RoutineStepType;
+  durationMinutes?: number;
+  description?: string;
+  imageUrl?: string;
+}
+
+export interface Routine extends BaseEntity {
+  id: string;
+  // userId handled by BaseEntity ownerId
+  name: string;
+  context: HabitContext;
+  emoji?: string;
+  description?: string;
+  steps: RoutineStep[];
+  estimatedDurationMinutes: number;
+  linkedHabitId?: string;
+}
+
+export interface RoutineSession extends BaseEntity {
+  id: string;
+  // userId handled by BaseEntity ownerId
+  routineId: string;
+  routineName: string;
+  status: 'started' | 'completed' | 'partial' | 'abandoned';
+  startedAt: number;
+  endedAt?: number;
+  completedSteps: string[];
+  notes?: string;
+}
+
+export interface HabitLog extends BaseEntity {
+  // id, ownerId, createdAt, updatedAt from BaseEntity
+  habitId: string;
+  completedAt: number;
+  note?: string;
+}
+
+export interface FirestoreRoutine extends Routine { }
+export interface FirestoreRoutine extends Routine { }
+export interface FirestoreRoutineSession extends RoutineSession { }
+export interface FirestoreHabitLog extends HabitLog { }
