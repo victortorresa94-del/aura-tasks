@@ -167,6 +167,25 @@ export interface Note extends BaseEntity {
   icon?: string;
   expanded?: boolean;
   links?: LinkedItem[];
+  // AI Metadata
+  ai?: {
+    sourceType: 'manual' | 'video' | 'topic' | 'merge';
+    sourceUrl?: string;
+    sourceNoteIds?: string[];
+    template?: string;
+    language?: 'auto' | 'es' | 'en';
+    length?: 'short' | 'medium' | 'long';
+    userPrompt?: string;
+    model?: string;
+    generatedAt?: number;
+    version?: number;
+  };
+  attachments?: {
+    type: 'transcript' | 'raw_text' | 'image' | 'audio';
+    storagePath?: string;
+    text?: string;
+    createdAt: number;
+  }[];
 }
 
 export interface Contact extends BaseEntity {
@@ -326,7 +345,36 @@ export interface HabitLog extends BaseEntity {
   note?: string;
 }
 
+export interface AiJob extends BaseEntity {
+  // BaseEntity has id, ownerId, createdAt, updatedAt
+  type: 'video_to_doc' | 'topic_to_doc' | 'merge_notes';
+  status: 'queued' | 'processing' | 'done' | 'error';
+
+  input: {
+    sourceUrl?: string;
+    sourceNoteIds?: string[];
+    destinationNoteId?: string;
+    template?: string;
+    language?: string;
+    length?: string;
+    userPrompt?: string;
+  };
+
+  output?: {
+    noteId?: string;
+    previewText?: string;
+    transcriptAttachmentPath?: string;
+    tokensUsed?: number;
+  };
+
+  error?: {
+    message: string;
+    code?: string;
+  };
+}
+
 export interface FirestoreRoutine extends Routine { }
 export interface FirestoreRoutine extends Routine { }
 export interface FirestoreRoutineSession extends RoutineSession { }
 export interface FirestoreHabitLog extends HabitLog { }
+export interface FirestoreAiJob extends AiJob { }

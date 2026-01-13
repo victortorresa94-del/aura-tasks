@@ -8,6 +8,11 @@ import {
 } from 'lucide-react';
 import { Note, NoteBlock, BlockType, Task, Contact, FileItem } from '../types';
 import LinkManager from '../components/LinkManager';
+import AiCreationButton from '../components/notes/ai/AiCreationButton';
+import VideoToDocModal from '../components/notes/ai/VideoToDocModal';
+import TopicToDocModal from '../components/notes/ai/TopicToDocModal';
+import MergeNotesModal from '../components/notes/ai/MergeNotesModal';
+import { auth } from '../firebase/auth';
 
 interface NotesViewProps {
   notes: Note[];
@@ -92,6 +97,13 @@ const NotesView: React.FC<NotesViewProps> = ({ notes, initialSelectedNoteId, tas
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(initialSelectedNoteId || null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // AI Modal States
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+
+  const userId = auth.currentUser?.uid || 'anonymous';
+
   const getNoteTree = (parentId: string | null = null) => {
     return notes.filter(n => (n.parentId || null) === parentId);
   };
@@ -156,6 +168,13 @@ const NotesView: React.FC<NotesViewProps> = ({ notes, initialSelectedNoteId, tas
           >
             <Plus size={14} /> Nueva
           </button>
+          <div className="ml-2">
+            <AiCreationButton
+              onOpenVideo={() => setShowVideoModal(true)}
+              onOpenTopic={() => setShowTopicModal(true)}
+              onOpenMerge={() => setShowMergeModal(true)}
+            />
+          </div>
         </div>
 
         {/* Note Tree */}
@@ -227,6 +246,25 @@ const NotesView: React.FC<NotesViewProps> = ({ notes, initialSelectedNoteId, tas
           </div>
         )}
       </div>
+      <VideoToDocModal
+        isOpen={showVideoModal}
+        onClose={() => setShowVideoModal(false)}
+        userId={userId}
+        onNoteCreated={(note) => { onCreateNote(note); setSelectedNoteId(note.id); }}
+      />
+      <TopicToDocModal
+        isOpen={showTopicModal}
+        onClose={() => setShowTopicModal(false)}
+        userId={userId}
+        onNoteCreated={(note) => { onCreateNote(note); setSelectedNoteId(note.id); }}
+      />
+      <MergeNotesModal
+        isOpen={showMergeModal}
+        onClose={() => setShowMergeModal(false)}
+        userId={userId}
+        notes={notes}
+        onNoteCreated={(note) => { onCreateNote(note); setSelectedNoteId(note.id); }}
+      />
     </div>
   );
 };

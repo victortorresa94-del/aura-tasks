@@ -3,7 +3,7 @@ import {
     FirestoreTask, FirestoreNote, FirestoreProject, FirestoreContact, FirestoreFile, FirestoreView, FirestoreStatus,
     FirestoreTab, FirestoreTransaction, FirestoreHabit, FirestoreChatSession,
     FirestoreSubscription, FirestoreRecurringExpense, FirestoreRoutine, FirestoreRoutineSession,
-    FirestoreHabitLog
+    FirestoreHabitLog, FirestoreAiJob
 } from '../../types';
 
 export const tasksRepo = new BaseRepository<FirestoreTask>('tasks');
@@ -22,3 +22,4 @@ export const recurringExpensesRepo = new BaseRepository<FirestoreRecurringExpens
 export const routinesRepo = new BaseRepository<FirestoreRoutine>('routines');
 export const routineSessionsRepo = new BaseRepository<FirestoreRoutineSession>('routine_sessions');
 export const habitLogsRepo = new BaseRepository<FirestoreHabitLog>('habit_logs');
+export const aiJobsRepo = new BaseRepository<FirestoreAiJob>('ai_jobs');
