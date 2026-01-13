@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X, Calendar, Flag, Tag, Trash2, Clock, MapPin, Phone,
   Music, AlignLeft, CheckSquare, ChevronDown, StickyNote, ArrowRight, Plus, Check, Loader, Trophy, ListTodo
@@ -8,6 +8,7 @@ import { Task, Project, Priority, Note, Contact, FileItem, LinkedItem, TaskStatu
 import DatePicker from './DatePicker';
 import LinkManager from './LinkManager';
 import { parseDateFromText } from '../utils/auraLogic';
+import { createPortal } from 'react-dom';
 import { AVAILABLE_COLUMNS, getColumnDef } from '../utils/columnDefs';
 
 interface TaskDetailProps {
@@ -27,6 +28,65 @@ interface TaskDetailProps {
   onAddTab: (label: string, type: 'view' | 'project' | 'entity' | 'note' | 'task' | 'contact', data: any, path: string) => void;
 }
 
+const FixedPopover = ({ children, triggerRef, onClose }: { children: React.ReactNode, triggerRef: React.RefObject<HTMLElement>, onClose: () => void }) => {
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+  React.useEffect(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      // Logic for bottom-sheet style or popover
+      // For this detail view, popping UP is usually better if at bottom
+      // Let's check available space
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      let top = 0;
+      let left = rect.left;
+
+      if (spaceBelow > 300) {
+        top = rect.bottom + 5;
+      } else {
+        top = rect.top - 5; // Will need to translate Y -100% in CSS or calculate height. 
+        // Since we don't know height, let's just stick to "above" logic being handled by CSS or fixed calc?
+        // Simplest for now: Align bottom of popover with top of trigger? 
+        // CSS 'bottom: ...' is easier if we use Fixed positioning relative to window bottom? No.
+        // Let's use top and translate-y if needed. 
+        // Actually, let's keep it simple: Attempt to render above if space below is tight.
+      }
+
+      // Basic fallback: render at rect.bottom (dropdown) unless strict requirement. 
+      // User complaint was likely clipping.
+      // Let's try to mimic the original "bottom-full" intent but fixed.
+      // If we want "bottom-full", that means the bottom of the popover is at rect.top.
+
+      const popoverStyle: any = { left: rect.left };
+      if (spaceBelow < 300) {
+        popoverStyle.bottom = window.innerHeight - rect.top + 5;
+      } else {
+        popoverStyle.top = rect.bottom + 5;
+      }
+
+      // Boundary check left
+      if (left + 250 > window.innerWidth) popoverStyle.left = window.innerWidth - 260;
+
+      setCoords(popoverStyle);
+    }
+  }, [triggerRef]);
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
+      <div
+        className="fixed z-[9999] animate-scale-in origin-bottom-left"
+        style={coords}
+      >
+        {children}
+      </div>
+    </>,
+    document.body
+  );
+};
+
 const TaskDetail: React.FC<TaskDetailProps> = ({
   task, lists, statuses, notes, contacts, files, allTasks, visibleColumns, onClose, onUpdate, onDelete, onCreateNote, onNavigateToNote, onAddTab
 }) => {
@@ -35,6 +95,10 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+
+  const projectBtnRef = useRef<HTMLButtonElement>(null);
+  const dateBtnRef = useRef<HTMLButtonElement>(null);
+  const priorityBtnRef = useRef<HTMLButtonElement>(null);
 
   const isNew = !allTasks.find(t => t.id === task.id);
   const currentStatus = statuses?.find(s => s.id === editedTask.status);
@@ -216,16 +280,20 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
 
             {/* Date Chip */}
             <div className="relative shrink-0">
-              <button onClick={() => setShowDatePicker(!showDatePicker)}
+              <button
+                ref={dateBtnRef}
+                onClick={() => setShowDatePicker(!showDatePicker)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors ${editedTask.date ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}
               >
                 <Calendar size={14} />
                 {editedTask.date ? new Date(editedTask.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Hoy'}
               </button>
               {showDatePicker && (
-                <div className="absolute bottom-full left-0 mb-2 z-50">
-                  <DatePicker currentDate={editedTask.date} onChange={(d) => { updateField('date', d); setShowDatePicker(false); }} onClose={() => setShowDatePicker(false)} />
-                </div>
+                <FixedPopover triggerRef={dateBtnRef} onClose={() => setShowDatePicker(false)}>
+                  <div className="bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl">
+                    <DatePicker currentDate={editedTask.date} onChange={(d) => { updateField('date', d); setShowDatePicker(false); }} onClose={() => setShowDatePicker(false)} />
+                  </div>
+                </FixedPopover>
               )}
             </div>
 
@@ -245,29 +313,33 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               ))}
             </div>
 
-            {/* Project Chip */}
+            {/* PROJECT CHIP */}
             <div className="relative shrink-0">
-              <button onClick={() => setShowProjectPicker(!showProjectPicker)}
+              <button
+                ref={projectBtnRef}
+                onClick={() => setShowProjectPicker(!showProjectPicker)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors max-w-[120px] ${editedTask.listId ? 'bg-white/5 border-white/10 text-gray-300' : 'border-transparent text-gray-500'}`}
               >
                 <span className="truncate">{lists.find(l => l.id === editedTask.listId)?.name || 'Sin proyecto'}</span>
                 <ChevronDown size={12} className="opacity-50" />
               </button>
               {showProjectPicker && (
-                <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl z-50 p-2 max-h-60 overflow-y-auto custom-scrollbar">
-                  <div className="text-[10px] font-bold text-gray-500 uppercase px-2 py-1 mb-1">Proyecto</div>
-                  {lists.map(l => (
-                    <button
-                      key={l.id}
-                      onClick={() => { updateField('listId', l.id); setShowProjectPicker(false); }}
-                      className="w-full text-left px-2 py-2 rounded-lg hover:bg-white/5 flex items-center gap-2 text-xs text-gray-300"
-                    >
-                      <span className={l.color}>{l.icon}</span>
-                      <span className="truncate">{l.name}</span>
-                      {editedTask.listId === l.id && <Check size={12} className="ml-auto text-aura-accent" />}
-                    </button>
-                  ))}
-                </div>
+                <FixedPopover triggerRef={projectBtnRef} onClose={() => setShowProjectPicker(false)}>
+                  <div className="w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl p-2 max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
+                    <div className="text-[10px] font-bold text-gray-500 uppercase px-2 py-1 mb-1">Proyecto</div>
+                    {lists.map(l => (
+                      <button
+                        key={l.id}
+                        onClick={() => { updateField('listId', l.id); setShowProjectPicker(false); }}
+                        className="w-full text-left px-2 py-2 rounded-lg hover:bg-white/5 flex items-center gap-2 text-xs text-gray-300"
+                      >
+                        <span className={l.color}>{l.icon}</span>
+                        <span className="truncate">{l.name}</span>
+                        {editedTask.listId === l.id && <Check size={12} className="ml-auto text-aura-accent" />}
+                      </button>
+                    ))}
+                  </div>
+                </FixedPopover>
               )}
             </div>
           </div>

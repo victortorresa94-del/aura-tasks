@@ -214,104 +214,103 @@ const TasksView: React.FC<TasksViewProps> = ({
    };
 
    // -- UI --
-   const ViewToolbar = () => {
-      const activeFiltersCount = (effectiveFilters.status?.length || 0) + (effectiveFilters.priority?.length || 0) + (effectiveFilters.projectIds?.length || 0);
+   // Refactored ViewToolbar to be part of the main render to avoid re-mounting issues
+   const activeFiltersCount = (effectiveFilters.status?.length || 0) + (effectiveFilters.priority?.length || 0) + (effectiveFilters.projectIds?.length || 0);
 
-      return (
-         <div className="sticky top-0 z-40 bg-aura-black/95 backdrop-blur-md pb-2 mb-4 border-b border-white/5 -mx-4 px-4 md:mx-0 md:px-0">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-gradient-right py-2">
+   const renderToolbar = () => (
+      <div className="sticky top-0 z-40 bg-aura-black/95 backdrop-blur-md pb-2 mb-4 border-b border-white/5 -mx-4 px-4 md:mx-0 md:px-0">
+         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-gradient-right py-2">
 
-               {/* 1. Layout & View Modes */}
-               <div className="flex bg-aura-gray/50 rounded-lg p-0.5 shrink-0 border border-white/5 mr-2">
-                  {[{ id: 'list', icon: <List size={16} /> }, { id: 'kanban', icon: <KanbanIcon size={16} /> }].map((opt) => (
-                     <button key={opt.id} onClick={() => handleUpdateConfig('layout', opt.id)} className={`p-1.5 rounded-md transition-all ${effectiveLayout === opt.id ? 'bg-aura-gray-light text-aura-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}>
-                        {opt.icon}
-                     </button>
-                  ))}
-               </div>
-
-               <div className="h-5 w-px bg-white/10 shrink-0"></div>
-
-               {/* Search */}
-               <div className="flex items-center bg-white/5 rounded-lg border border-white/5 px-2 py-1 focus-within:ring-1 focus-within:ring-aura-accent/50 shrink-0 w-32 sm:w-48">
-                  <Search size={14} className="text-gray-500 mr-2" />
-                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="bg-transparent border-none p-0 text-xs w-full focus:ring-0 text-gray-300" />
-               </div>
-
-               {/* Group By */}
-               <div className="relative shrink-0">
-                  <button onClick={() => toggleMenu('group')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveGroupBy !== 'none' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
-                     <Layers size={14} /> <span className="hidden sm:inline">Agrupar</span>
+            {/* 1. Layout & View Modes */}
+            <div className="flex bg-aura-gray/50 rounded-lg p-0.5 shrink-0 border border-white/5 mr-2">
+               {[{ id: 'list', icon: <List size={16} /> }, { id: 'kanban', icon: <KanbanIcon size={16} /> }].map((opt) => (
+                  <button key={opt.id} onClick={() => handleUpdateConfig('layout', opt.id)} className={`p-1.5 rounded-md transition-all ${effectiveLayout === opt.id ? 'bg-aura-gray-light text-aura-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}>
+                     {opt.icon}
                   </button>
-                  {openMenu === 'group' && (
-                     <>
-                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />
-                        <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-48 z-50 animate-fade-in-up">
-                           {['none', 'status', 'priority', 'project', 'timeframe'].map(g => (
-                              <button key={g} onClick={() => { handleUpdateConfig('groupBy', g); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveGroupBy === g ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
-                                 <span className="capitalize">{g === 'none' ? 'Sin agrupar' : g === 'timeframe' ? 'Tiempo aprox.' : g}</span>
-                                 {effectiveGroupBy === g && <CheckCircle size={12} className="text-aura-accent" />}
-                              </button>
-                           ))}
-                        </div>
-                     </>
-                  )}
-               </div>
+               ))}
+            </div>
 
-               {/* Sort By */}
-               <div className="relative shrink-0">
-                  <button onClick={() => toggleMenu('sort')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveSortBy !== 'date' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
-                     <ArrowUpDown size={14} /> <span className="hidden sm:inline">Ordenar</span>
-                  </button>
-                  {openMenu === 'sort' && (
-                     <>
-                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />
-                        <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-40 z-50 animate-fade-in-up">
-                           {['date', 'priority', 'title'].map(s => (
-                              <button key={s} onClick={() => { handleUpdateConfig('sortBy', s); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveSortBy === s ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
-                                 <span className="capitalize">{s}</span>
-                                 {effectiveSortBy === s && <CheckCircle size={12} className="text-aura-accent" />}
-                              </button>
-                           ))}
-                        </div>
-                     </>
-                  )}
-               </div>
+            <div className="h-5 w-px bg-white/10 shrink-0"></div>
 
-               {/* Filter */}
-               <div className="relative shrink-0">
-                  <button onClick={() => toggleMenu('filter')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${activeFiltersCount > 0 ? 'bg-aura-accent text-aura-black ring-1 ring-aura-accent' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
-                     <Filter size={14} /> {activeFiltersCount > 0 && <span className="text-[10px]">{activeFiltersCount}</span>}
-                  </button>
-                  {openMenu === 'filter' && (
-                     <>
-                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />
-                        <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-3 w-64 z-50 animate-fade-in-up">
-                           <div className="space-y-3">
-                              <div>
-                                 <h6 className="text-[10px] uppercase font-bold text-gray-500 mb-1">Prioridad</h6>
-                                 <div className="flex gap-1">{['alta', 'media', 'baja'].map(p => (
-                                    <button key={p} onClick={() => toggleFilter('priority', p)} className={`flex-1 py-1 rounded text-[10px] uppercase font-bold border ${effectiveFilters.priority?.includes(p as any) ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}>{p}</button>
-                                 ))}</div>
-                              </div>
-                              <div>
-                                 <h6 className="text-[10px] uppercase font-bold text-gray-500 mb-1">Estado</h6>
-                                 <div className="space-y-0.5">{statuses.map(s => (
-                                    <button key={s.id} onClick={() => toggleFilter('status', s.id)} className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs ${effectiveFilters.status?.includes(s.id) ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'}`}>
-                                       <div className={`w-2 h-2 rounded-full ${s.color}`}></div> {s.name}
-                                    </button>
-                                 ))}</div>
-                              </div>
+            {/* Search */}
+            <div className="flex items-center bg-white/5 rounded-lg border border-white/5 px-2 py-1 focus-within:ring-1 focus-within:ring-aura-accent/50 shrink-0 w-32 sm:w-48">
+               <Search size={14} className="text-gray-500 mr-2" />
+               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." className="bg-transparent border-none p-0 text-xs w-full focus:ring-0 text-gray-300" />
+            </div>
+
+            {/* Group By */}
+            <div className="relative shrink-0">
+               <button onClick={() => toggleMenu('group')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveGroupBy !== 'none' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                  <Layers size={14} /> <span className="hidden sm:inline">Agrupar</span>
+               </button>
+               {openMenu === 'group' && (
+                  <>
+                     <div className="fixed inset-0 z-50" onClick={() => setOpenMenu(null)} />
+                     <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-48 z-[60] animate-fade-in-up">
+                        {['none', 'status', 'priority', 'project', 'timeframe'].map(g => (
+                           <button key={g} onClick={() => { handleUpdateConfig('groupBy', g); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveGroupBy === g ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+                              <span className="capitalize">{g === 'none' ? 'Sin agrupar' : g === 'timeframe' ? 'Tiempo aprox.' : g}</span>
+                              {effectiveGroupBy === g && <CheckCircle size={12} className="text-aura-accent" />}
+                           </button>
+                        ))}
+                     </div>
+                  </>
+               )}
+            </div>
+
+            {/* Sort By */}
+            <div className="relative shrink-0">
+               <button onClick={() => toggleMenu('sort')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${effectiveSortBy !== 'date' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                  <ArrowUpDown size={14} /> <span className="hidden sm:inline">Ordenar</span>
+               </button>
+               {openMenu === 'sort' && (
+                  <>
+                     <div className="fixed inset-0 z-50" onClick={() => setOpenMenu(null)} />
+                     <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-1 w-40 z-[60] animate-fade-in-up">
+                        {['date', 'priority', 'title'].map(s => (
+                           <button key={s} onClick={() => { handleUpdateConfig('sortBy', s); setOpenMenu(null); }} className={`w-full text-left px-3 py-2 text-xs rounded-lg mb-0.5 flex items-center justify-between ${effectiveSortBy === s ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+                              <span className="capitalize">{s}</span>
+                              {effectiveSortBy === s && <CheckCircle size={12} className="text-aura-accent" />}
+                           </button>
+                        ))}
+                     </div>
+                  </>
+               )}
+            </div>
+
+            {/* Filter */}
+            <div className="relative shrink-0">
+               <button onClick={() => toggleMenu('filter')} className={`px-2 py-1.5 rounded-lg border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors ${activeFiltersCount > 0 ? 'bg-aura-accent text-aura-black ring-1 ring-aura-accent' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                  <Filter size={14} /> {activeFiltersCount > 0 && <span className="text-[10px]">{activeFiltersCount}</span>}
+               </button>
+               {openMenu === 'filter' && (
+                  <>
+                     <div className="fixed inset-0 z-50" onClick={() => setOpenMenu(null)} />
+                     <div className="absolute top-full left-0 mt-2 bg-aura-gray border border-white/10 shadow-xl rounded-xl p-3 w-64 z-[60] animate-fade-in-up">
+                        <div className="space-y-3">
+                           <div>
+                              <h6 className="text-[10px] uppercase font-bold text-gray-500 mb-1">Prioridad</h6>
+                              <div className="flex gap-1">{['alta', 'media', 'baja'].map(p => (
+                                 <button key={p} onClick={() => toggleFilter('priority', p)} className={`flex-1 py-1 rounded text-[10px] uppercase font-bold border ${effectiveFilters.priority?.includes(p as any) ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}>{p}</button>
+                              ))}</div>
+                           </div>
+                           <div>
+                              <h6 className="text-[10px] uppercase font-bold text-gray-500 mb-1">Estado</h6>
+                              <div className="space-y-0.5">{statuses.map(s => (
+                                 <button key={s.id} onClick={() => toggleFilter('status', s.id)} className={`w-full flex items-center gap-2 px-2 py-1 rounded text-xs ${effectiveFilters.status?.includes(s.id) ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'}`}>
+                                    <div className={`w-2 h-2 rounded-full ${s.color}`}></div> {s.name}
+                                 </button>
+                              ))}</div>
                            </div>
                         </div>
-                     </>
-                  )}
-               </div>
-
+                     </div>
+                  </>
+               )}
             </div>
+
          </div>
-      );
-   };
+      </div>
+   );
 
    // -- RENDERERS --
    const renderTask = (task: Task) => (
@@ -360,7 +359,7 @@ const TasksView: React.FC<TasksViewProps> = ({
                </div>
             )}
 
-            <ViewToolbar />
+            {renderToolbar()}
 
             {/* HEADER ROW for List View */}
             {effectiveLayout === 'list' && groupedTasks && Object.values(groupedTasks).some(g => g.length > 0) && (
